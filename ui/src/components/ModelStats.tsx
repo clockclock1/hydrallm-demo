@@ -102,12 +102,12 @@ function ChannelBlock({
   const successRate = pct(channel.successes, channel.requests);
 
   return (
-    <section className="motion-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" style={{ animationDelay: `${index * 45}ms` }}>
-      <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
+    <section className="model-stats-channel motion-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" style={{ animationDelay: `${index * 45}ms` }}>
+      <div className="model-stats-channel-header border-b border-slate-100 bg-slate-50/70 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <span className="model-stats-channel-icon inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                 <Server size={16} />
               </span>
               <h3 className="truncate font-semibold text-slate-800">{channel.name}</h3>
@@ -116,21 +116,21 @@ function ChannelBlock({
             {channel.baseUrl && <p className="mt-1 truncate font-mono text-xs text-slate-400">{channel.baseUrl}</p>}
           </div>
           <div className="grid grid-cols-3 gap-2 text-right text-xs">
-            <div className="rounded-lg bg-white px-3 py-2">
+            <div className="model-stats-summary-pill rounded-lg bg-white px-3 py-2">
               <p className="text-slate-400">总请求</p>
               <p className="font-mono font-semibold text-slate-800">{channel.requests.toLocaleString()}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 px-3 py-2">
+            <div className="model-stats-summary-pill model-stats-summary-success rounded-lg bg-emerald-50 px-3 py-2">
               <p className="text-emerald-500">成功</p>
               <p className="font-mono font-semibold text-emerald-700">{channel.successes.toLocaleString()}</p>
             </div>
-            <div className="rounded-lg bg-red-50 px-3 py-2">
+            <div className="model-stats-summary-pill model-stats-summary-failure rounded-lg bg-red-50 px-3 py-2">
               <p className="text-red-500">失败</p>
               <p className="font-mono font-semibold text-red-700">{channel.failures.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+        <div className="model-stats-progress-track mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
           <div
             className={cn('h-full rounded-full transition-all duration-700', successRate >= 99 ? 'bg-emerald-500' : successRate >= 90 ? 'bg-amber-500' : 'bg-red-500')}
             style={{ width: `${Math.min(100, Math.max(0, successRate))}%` }}
