@@ -11,23 +11,269 @@
   <body>
     <div id="root"></div>
     <!-- 演示提示横幅 -->
-    <div id="demo-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;padding:6px 12px;background:linear-gradient(135deg,#0a96f0,#06b6d4);color:#fff;font-size:13px;font-family:system-ui,sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(8px);">
-      <span>🧪 演示模式 — 所有数据均为模拟，不与真实 AI 后端交互</span>
-      <a href="/" style="color:#fff;text-decoration:underline;font-weight:500;">← 返回介绍页</a>
-    </div>
-    <script>
-      // 演示 banner
-      (function(){var b=document.getElementById('demo-banner');if(b){b.style.display='flex';document.body.style.paddingTop='36px';}})();
+    <div id="demo-banner" style="
+      display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+      padding:6px 16px; background:linear-gradient(135deg,#0a96f0,#06b6d4);
+      color:#fff; font-size:13px; font-family:system-ui,sans-serif;
+      text-align:center; display:flex; align-items:center; justify-content:center;
+      gap:12px; backdrop-filter:blur(8px);
+    "><span>&#x1F9EA; 演示模式 — 数据均为模拟，不与真实 AI 后端交互</span>
+    <a href="/" style="color:#fff;text-decoration:underline;font-weight:500;">&#x2190; 返回介绍页</a></div>
 
-      // 注册 Service Worker（必须放在根路径，用 `/` scope 才能拦截 `/api/*`）
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(function(reg) { console.log('[HydraLLM Demo] SW registered, scope =', reg.scope); })
-            .catch(function(err) { console.warn('[HydraLLM Demo] SW registration failed', err); });
+    <!-- ========== Mock API：在 React 加载前拦截所有 fetch 请求 ========== -->
+    <script>
+    (function() {
+      'use strict';
+
+      // 演示 banner
+      var b = document.getElementById('demo-banner');
+      if (b) { b.style.display = 'flex'; document.body.style.paddingTop = '36px'; }
+
+      // ---- mock 数据库（有记忆，浏览器刷新后重置） ----
+      var DEMO_TOKEN = 'admin';
+      var DEMO_SESSION = 'demo-session-8f7a3b2c1d-xYz';
+
+      var now = Date.now();
+      var DAY = 86400000;
+
+      var mockConfig = {
+        adminToken: 'admin',
+        proxyKeys: [
+          { name: '开发环境', key: 'sk-dev-key-001', enabled: true },
+          { name: '生产环境', key: 'sk-prod-key-002', enabled: true },
+          { name: '测试密钥', key: 'sk-test-key-003', enabled: false },
+        ],
+        failoverStatusCodes: [401, 403, 408, 409, 429, 500, 502, 503, 504],
+        requestTimeoutMs: 120000,
+        circuitBreaker: { failureThreshold: 3, cooldownMinutes: 10, immediateCooldownStatusCodes: [429] },
+        modelSource: {
+          enabled: false, url: '', apiKey: '', refreshSeconds: 300,
+          include: '', exclude: '', publicPrefix: '', publicSuffix: '',
+          targets: [{ name: 'primary-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', modelNameTemplate: '{model}', enabled: true }],
+        },
+        models: [
+          {
+            publicName: 'primary-gpt', enabled: true, concurrency: 3, releaseDelayMs: 0,
+            targets: [
+              { name: 'primary-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', modelName: 'gpt-4o', enabled: true },
+              { name: 'backup-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', modelName: 'gpt-4.1-mini', enabled: true },
+              { name: 'claude-fallback', baseUrl: 'https://api.anthropic.com/v1', apiKey: 'sk-ant-REPLACE-ME', modelName: 'claude-3-opus-20240229', enabled: true },
+            ],
+          },
+          {
+            publicName: 'deepseek-chat', enabled: true, concurrency: 2, releaseDelayMs: 0,
+            targets: [
+              { name: 'deepseek-provider', baseUrl: 'https://api.deepseek.com/v1', apiKey: 'sk-REPLACE-ME', modelName: 'deepseek-chat', enabled: true },
+              { name: 'backup-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', modelName: 'gpt-4.1-mini', enabled: true },
+            ],
+          },
+          {
+            publicName: 'claude-3.5-sonnet', enabled: false, concurrency: 1, releaseDelayMs: 0,
+            targets: [
+              { name: 'claude-fallback', baseUrl: 'https://api.anthropic.com/v1', apiKey: 'sk-ant-REPLACE-ME', modelName: 'claude-3-5-sonnet-20241022', enabled: true },
+            ],
+          },
+        ],
+        providers: [
+          { id: 'p1', name: 'primary-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', models: ['gpt-4o', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5-preview', 'o3-mini'], status: 'online', latency: 234, lastCheck: now - 30000 },
+          { id: 'p2', name: 'backup-openai', baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-REPLACE-ME', models: ['gpt-4.1-mini', 'gpt-4.1-nano'], status: 'online', latency: 312, lastCheck: now - 24000 },
+          { id: 'p3', name: 'claude-fallback', baseUrl: 'https://api.anthropic.com/v1', apiKey: 'sk-ant-REPLACE-ME', models: ['claude-3-opus-20240229', 'claude-3-5-sonnet-20241022'], status: 'online', latency: 567, lastCheck: now - 15000 },
+          { id: 'p4', name: 'deepseek-provider', baseUrl: 'https://api.deepseek.com/v1', apiKey: 'sk-REPLACE-ME', models: ['deepseek-chat', 'deepseek-reasoner'], status: 'offline', latency: 0, lastCheck: now - 60000 },
+        ],
+      };
+
+      var mockStats = {
+        startedAt: new Date(now - DAY * 3).toISOString(),
+        requests: 1842, successes: 1796, failures: 46, failovers: 38,
+        targets: {
+          'primary-gpt/primary-openai/gpt-4o/https://api.openai.com/v1':            { model:'primary-gpt', target:'primary-openai', upstreamModel:'gpt-4o', baseUrl:'https://api.openai.com/v1', ok:864, error:12, consecutiveFailures:0, disabledUntil:0, lastStatus:'ok', lastError:'', lastLatencyMs:234, avgLatencyMs:287 },
+          'primary-gpt/backup-openai/gpt-4.1-mini/https://api.openai.com/v1':       { model:'primary-gpt', target:'backup-openai', upstreamModel:'gpt-4.1-mini', baseUrl:'https://api.openai.com/v1', ok:312, error:5, consecutiveFailures:1, disabledUntil:0, lastStatus:'ok', lastError:'', lastLatencyMs:345, avgLatencyMs:378 },
+          'primary-gpt/claude-fallback/claude-3-opus-20240229/https://api.anthropic.com/v1': { model:'primary-gpt', target:'claude-fallback', upstreamModel:'claude-3-opus-20240229', baseUrl:'https://api.anthropic.com/v1', ok:45, error:2, consecutiveFailures:0, disabledUntil:0, lastStatus:'ok', lastError:'', lastLatencyMs:892, avgLatencyMs:934 },
+          'deepseek-chat/deepseek-provider/deepseek-chat/https://api.deepseek.com/v1':       { model:'deepseek-chat', target:'deepseek-provider', upstreamModel:'deepseek-chat', baseUrl:'https://api.deepseek.com/v1', ok:0, error:14, consecutiveFailures:14, disabledUntil:now+360000, lastStatus:'error', lastError:'connect ECONNREFUSED 104.18.25.14:443', lastLatencyMs:120000, avgLatencyMs:120000 },
+          'deepseek-chat/backup-openai/gpt-4.1-mini/https://api.openai.com/v1':      { model:'deepseek-chat', target:'backup-openai', upstreamModel:'gpt-4.1-mini', baseUrl:'https://api.openai.com/v1', ok:621, error:13, consecutiveFailures:0, disabledUntil:0, lastStatus:'ok', lastError:'', lastLatencyMs:267, avgLatencyMs:302 },
+        },
+        chains: {
+          'primary-gpt':   { requests:1221, successes:1198, failures:23, failovers:18 },
+          'deepseek-chat': { requests:621,  successes:598,  failures:23, failovers:20 },
+          'claude-3.5-sonnet': { requests:0, successes:0, failures:0, failovers:0 },
+        },
+        channelModels: {
+          'https://api.openai.com/v1': { name:'primary-openai', baseUrl:'https://api.openai.com/v1', requests:1797, successes:1756, failures:41,
+            models: { 'gpt-4o': { requests:864, successes:855, failures:9 }, 'gpt-4.1-mini': { requests:933, successes:901, failures:32 } } },
+          'https://api.anthropic.com/v1': { name:'claude-fallback', baseUrl:'https://api.anthropic.com/v1', requests:45, successes:43, failures:2,
+            models: { 'claude-3-opus-20240229': { requests:45, successes:43, failures:2 } } },
+        },
+        logs: [
+          { id:'log-01', timestamp:now-3000,   chainName:'primary-gpt',   originalModel:'gpt-4o', failedModels:[], finalModel:'gpt-4o', status:'ok', latency:245, error:'' },
+          { id:'log-02', timestamp:now-8000,   chainName:'deepseek-chat', originalModel:'deepseek-chat', failedModels:['deepseek-chat'], finalModel:'gpt-4.1-mini', status:'failover', latency:1284, error:'' },
+          { id:'log-03', timestamp:now-15000,  chainName:'primary-gpt',   originalModel:'gpt-4o', failedModels:[], finalModel:'gpt-4o', status:'ok', latency:312, error:'' },
+          { id:'log-04', timestamp:now-22000,  chainName:'primary-gpt',   originalModel:'gpt-4o', failedModels:['gpt-4o','gpt-4.1-mini'], finalModel:'claude-3-opus-20240229', status:'failover', latency:3489, error:'' },
+          { id:'log-05', timestamp:now-35000,  chainName:'deepseek-chat', originalModel:'deepseek-chat', failedModels:['deepseek-chat'], finalModel:'gpt-4.1-mini', status:'failover', latency:2321, error:'' },
+          { id:'log-06', timestamp:now-48000,  chainName:'primary-gpt',   originalModel:'gpt-4o', failedModels:[], finalModel:'gpt-4o', status:'ok', latency:198, error:'' },
+          { id:'log-07', timestamp:now-62000,  chainName:'primary-gpt',   originalModel:'gpt-4o', failedModels:[], finalModel:'gpt-4o', status:'ok', latency:276, error:'' },
+          { id:'log-08', timestamp:now-81000,  chainName:'deepseek-chat', originalModel:'deepseek-chat', failedModels:[], finalModel:'deepseek-chat', status:'error', latency:120023, error:'connect ECONNREFUSED' },
+        ],
+        activeThreads: [],
+      };
+
+      var loggedIn = false;
+
+      // ---- 工具函数 ----
+      function j(data, headers) {
+        headers = headers || {};
+        headers['Content-Type'] = 'application/json';
+        headers['Access-Control-Allow-Origin'] = '*';
+        return new Response(JSON.stringify(data), { status: 200, headers: headers });
+      }
+      function err(msg, code) {
+        return new Response(JSON.stringify({ error: { message: msg, type: 'proxy_error' } }), { status: code || 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+      }
+      function readBody(req) {
+        return req.text().then(function(t) { try { return JSON.parse(t); } catch(e) { return {}; } });
+      }
+
+      // ---- 模拟 health check（异步延迟，更真实） ----
+      function mockHealthCheck(providers) {
+        var list = providers || mockConfig.providers;
+        return list.map(function(p) {
+          return {
+            id: p.id, name: p.name, baseUrl: p.baseUrl,
+            status: p.status, latency: p.latency, models: p.models, error: '',
+          };
         });
       }
+
+      // ---- 模拟 model tests（带延迟） ----
+      function mockModelTests(targets, capabilities) {
+        var caps = capabilities || ['text', 'vision', 'tool'];
+        return targets.map(function(t) {
+          return {
+            id: (t.providerId||'unknown') + ':' + (t.modelName||'unknown'),
+            providerId: t.providerId || 'unknown', providerName: t.providerName || 'Unknown',
+            baseUrl: t.baseUrl || '', modelName: t.modelName || 'unknown',
+            startedAt: Date.now() - 500, latencyMs: 823,
+            results: caps.map(function(cap) {
+              var r = Math.random();
+              var status = r < 0.1 ? 'failed' : r < 0.18 ? 'uncertain' : 'passed';
+              return {
+                capability: cap, status: status,
+                latencyMs: Math.floor(Math.random() * 900) + 200,
+                usage: { promptTokens: Math.floor(Math.random() * 200) + 50, completionTokens: Math.floor(Math.random() * 300) + 50, totalTokens: 0 },
+                detail: cap === 'text' ? 'HTTP 200 and choices[0].message.content is non-empty'
+                  : cap === 'vision' ? 'HTTP 200, image_url was accepted'
+                  : 'HTTP 200, finish_reason is tool_calls',
+                evidence: '{"choices":[{"message":{"content":"模拟响应..."}}]}',
+              };
+            }),
+          };
+        });
+      }
+
+      // ---- 路由分发 ----
+      function mockHandler(req) {
+        var url = new URL(req.url);
+        var method = req.method;
+        var path = url.pathname;
+
+        // 只拦截 /api/*
+        if (path !== '/api/login' && path !== '/api/logout' && path !== '/api/session' &&
+            path !== '/api/config' && path !== '/api/stats' && path !== '/api/providers/health' &&
+            path !== '/api/model-tests/run' && path !== '/api/model-source/preview' &&
+            path !== '/api/model-source/refresh' && path !== '/api/health') {
+          return null; // 不拦截，让请求正常走
+        }
+
+        // CORS headers
+        var cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, x-admin-session', 'Access-Control-Allow-Credentials': 'true' };
+
+        if (method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+
+        return readBody(req).then(function(body) {
+          var session = req.headers.get('x-admin-session') || '';
+          var authed = loggedIn || session === DEMO_SESSION;
+
+          // POST /api/login
+          if (path === '/api/login' && method === 'POST') {
+            if (body.token === DEMO_TOKEN) { loggedIn = true; return j({ ok: true, session: DEMO_SESSION }, cors); }
+            return err('Invalid admin token', 401, cors);
+          }
+
+          // POST /api/logout
+          if (path === '/api/logout' && method === 'POST') { loggedIn = false; return j({ ok: true }, cors); }
+
+          // GET /api/session
+          if (path === '/api/session' && method === 'GET') return j({ ok: authed }, cors);
+
+          // 以下需要认证
+          if (!authed) return err('Unauthorized', 401, cors);
+
+          // GET /api/health
+          if (path === '/api/health' && method === 'GET') {
+            return j({ ok: true, startedAt: mockStats.startedAt, configPath: 'demo/config.json', statsPath: 'demo/stats.json', models: mockConfig.models.map(function(m){return m.publicName;}), modelSourceError: '' }, cors);
+          }
+
+          // GET /api/config
+          if (path === '/api/config' && method === 'GET') return j(mockConfig, cors);
+
+          // POST /api/config
+          if (path === '/api/config' && method === 'POST') return j({ ok: true, config: mockConfig }, cors);
+
+          // GET /api/stats
+          if (path === '/api/stats' && method === 'GET') {
+            // 稍微随机化统计数字，让它看起来"活"的
+            var s = JSON.parse(JSON.stringify(mockStats));
+            s.requests += Math.floor(Math.random() * 3);
+            s.successes += Math.floor(Math.random() * 2);
+            return j(s, cors);
+          }
+
+          // POST /api/providers/health
+          if (path === '/api/providers/health' && method === 'POST') {
+            return j({ ok: true, providers: mockHealthCheck(body.providers) }, cors);
+          }
+
+          // POST /api/model-tests/run
+          if (path === '/api/model-tests/run' && method === 'POST') {
+            var results = mockModelTests(body.targets || [], body.capabilities);
+            return j({ ok: true, results: results }, cors);
+          }
+
+          // POST /api/model-source/preview
+          if (path === '/api/model-source/preview' && method === 'POST') {
+            return j({ ok: true, count: 12, models: ['gpt-4o','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview','o3-mini','claude-3-opus-20240229','claude-3-5-sonnet-20241022','deepseek-chat'] }, cors);
+          }
+
+          // POST /api/model-source/refresh
+          if (path === '/api/model-source/refresh' && method === 'POST') {
+            return j({ ok: true, count: 8, models: ['gpt-4o','gpt-4.1-mini','claude-3-5-sonnet-20241022','deepseek-chat'] }, cors);
+          }
+
+          return err('Mock API: ' + method + ' ' + path + ' not found', 404, cors);
+        });
+      }
+
+      // ---- 安装 fetch 拦截器 ----
+      // 这个必须在 React 任何代码运行前执行
+      var _origFetch = window.fetch;
+      window.fetch = function(input, init) {
+        var url = (typeof input === 'string') ? input : (input.url || input);
+        if (!url || (typeof url !== 'string' && !(url instanceof URL))) {
+          // 不是 URL 的 fetch（比如 Request 对象），走原生
+          return _origFetch.apply(this, arguments);
+        }
+        var u = (url instanceof URL) ? url : new URL(url, location.href);
+        // 只拦截同源 /api/*
+        if (u.origin === location.origin && u.pathname.startsWith('/api/')) {
+          return mockHandler(new Request(input, init));
+        }
+        return _origFetch.apply(this, arguments);
+      };
+
+      console.log('[HydraLLM Demo] Mock API enabled — all /api/* calls intercepted');
+    })();
     </script>
+    <!-- ========== END Mock API ========== -->
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

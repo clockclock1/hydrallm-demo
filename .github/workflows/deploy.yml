@@ -51,7 +51,6 @@ jobs:
           find dist -type f | sort
           test -f dist/index.html && echo "✓ Vue landing"
           test -f dist/ui/index.html && echo "✓ React UI"
-          test -f dist/sw.js && echo "✓ Service Worker"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
