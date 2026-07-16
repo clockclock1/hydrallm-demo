@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useStore } from '../store';
+import type { Page } from '../types';
 import { cn } from '../utils/cn';
 import AnimatedGlyph from './AnimatedGlyph';
 
@@ -19,32 +20,40 @@ function successRate(successes: number, failures: number) {
   return finished ? Number(((successes / finished) * 100).toFixed(1)) : 100;
 }
 
-function StatCard({ icon, label, value, sub, color, delay = 0 }: {
+function StatCard({ icon, label, value, sub, color, delay = 0, targetPage, onNavigate }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub?: string;
   color: string;
   delay?: number;
+  targetPage: Page;
+  onNavigate: (page: Page) => void;
 }) {
   return (
-    <div className="motion-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:-translate-y-0.5 hover:shadow-lg" style={{ animationDelay: `${delay}ms` }}>
+    <button
+      type="button"
+      onClick={() => onNavigate(targetPage)}
+      className="motion-card group w-full rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500/40"
+      style={{ animationDelay: `${delay}ms` }}
+      aria-label={`${label} - 跳转`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-slate-500">{label}</p>
           <p className="mt-1 truncate text-2xl font-bold text-slate-800">{value}</p>
           {sub && <p className="mt-1 truncate text-xs text-slate-400">{sub}</p>}
         </div>
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 hover:scale-110', color)}>
+        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110', color)}>
           {icon}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
 export default function Dashboard() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const stats = state.backendStats;
   const onlineProviders = state.providers.filter(p => p.status === 'online').length;
   const totalModels = state.providers.reduce((sum, p) => sum + p.models.length, 0);
@@ -81,6 +90,8 @@ export default function Dashboard() {
           value={`${onlineProviders} / ${state.providers.length}`}
           sub={`共 ${totalModels} 个模型`}
           color="bg-blue-50"
+          targetPage="providers"
+          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
         />
         <StatCard
           icon={<GitBranch size={20} className="text-violet-600" />}
@@ -89,6 +100,8 @@ export default function Dashboard() {
           sub={`共 ${state.chains.length} 条链`}
           color="bg-violet-50"
           delay={60}
+          targetPage="chains"
+          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
         />
         <StatCard
           icon={<TrendingUp size={20} className="text-emerald-600" />}
@@ -97,6 +110,8 @@ export default function Dashboard() {
           sub={`故障转移 ${totalFailovers.toLocaleString()} 次`}
           color="bg-emerald-50"
           delay={120}
+          targetPage="logs"
+          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
         />
         <StatCard
           icon={<Zap size={20} className="text-amber-600" />}
@@ -105,6 +120,8 @@ export default function Dashboard() {
           sub="所有转移链"
           color="bg-amber-50"
           delay={180}
+          targetPage="model-stats"
+          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
         />
       </div>
 

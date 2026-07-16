@@ -363,19 +363,19 @@ export default function ModelTests() {
 
         <section className="space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-xs text-emerald-700">通过</p>
               <p className="mt-1 text-2xl font-bold text-emerald-800">{summary.passed}</p>
             </div>
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '35ms' }}>
               <p className="text-xs text-red-700">失败</p>
               <p className="mt-1 text-2xl font-bold text-red-800">{summary.failed}</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '70ms' }}>
               <p className="text-xs text-amber-700">不确定</p>
               <p className="mt-1 text-2xl font-bold text-amber-800">{summary.uncertain}</p>
             </div>
-            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4">
+            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '105ms' }}>
               <p className="text-xs text-slate-500">测试模型</p>
               <p className="mt-1 text-2xl font-bold text-slate-800">{results.length}</p>
             </div>

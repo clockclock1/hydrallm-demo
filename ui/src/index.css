@@ -673,6 +673,60 @@ button:active {
   box-shadow: 0 12px 32px rgba(34, 211, 238, 0.22), 0 0 18px rgba(244, 114, 182, 0.12);
 }
 
+.uiverse-shell button:not(.loading-comp-react):not([class*="absolute"]) > svg,
+.uiverse-login button:not(.loading-comp-react):not([class*="absolute"]) > svg {
+  position: relative;
+  z-index: 1;
+  display: block !important;
+  opacity: 1 !important;
+  color: currentColor;
+  stroke: currentColor !important;
+  flex-shrink: 0;
+}
+
+.uiverse-shell .button-content-layer,
+.uiverse-login .button-content-layer {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: currentColor;
+}
+
+.uiverse-shell .button-content-layer > svg,
+.uiverse-login .button-content-layer > svg {
+  display: block !important;
+  opacity: 1 !important;
+  color: currentColor;
+  stroke: currentColor !important;
+  flex-shrink: 0;
+}
+
+.uiverse-shell .fallback-icon,
+.uiverse-login .fallback-icon {
+  position: relative;
+  z-index: 2;
+  display: inline-flex !important;
+  min-width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.94em;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 1 !important;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.18);
+}
+
+.uiverse-shell button .fallback-icon,
+.uiverse-login button .fallback-icon {
+  pointer-events: none;
+}
+
 .uiverse-shell button.queue-icon-button {
   color: #0f766e !important;
   background: rgba(255, 255, 255, 0.92) !important;
@@ -690,26 +744,6 @@ button:active {
   opacity: 1 !important;
   stroke: currentColor !important;
   stroke-width: 2.4;
-}
-
-.uiverse-shell button.queue-icon-button[data-queue-icon] svg {
-  display: none !important;
-}
-
-.uiverse-shell button.queue-icon-button[data-queue-icon]::after {
-  content: attr(data-queue-icon);
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1em;
-  color: currentColor;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 16px;
-  font-weight: 900;
-  line-height: 1;
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.22);
 }
 
 .uiverse-shell button.queue-icon-button:hover {
@@ -1010,6 +1044,80 @@ button:active {
 .uiverse-shell[data-theme="light"] .model-stats-channel-header {
   background:
     linear-gradient(110deg, rgba(236, 254, 255, 0.74), rgba(255, 255, 255, 0.74) 52%, rgba(253, 242, 248, 0.66)) !important;
+}
+
+.uiverse-shell .chain-config-strip {
+  border-color: rgba(125, 211, 252, 0.16) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-config-strip {
+  background:
+    linear-gradient(110deg, rgba(8, 47, 73, 0.78), rgba(15, 23, 42, 0.88) 48%, rgba(46, 16, 101, 0.54)) !important;
+  border-color: rgba(125, 211, 252, 0.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(34, 211, 238, 0.1) !important;
+}
+
+.uiverse-shell[data-theme="light"] .chain-config-strip {
+  background:
+    linear-gradient(110deg, rgba(224, 242, 254, 0.58), rgba(255, 255, 255, 0.58) 48%, rgba(245, 243, 255, 0.5)) !important;
+}
+
+.uiverse-shell .chain-config-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-config-pill {
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.78)) !important;
+  border-color: rgba(125, 211, 252, 0.2) !important;
+  color: #dbeafe !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 22px rgba(2, 6, 23, 0.2) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-config-strip .text-slate-500 {
+  color: #9fb5d6 !important;
+}
+
+.uiverse-shell .chain-config-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 0.45rem;
+}
+
+.uiverse-shell .chain-config-copy svg,
+.uiverse-shell .chain-flow-entry-content svg {
+  display: block !important;
+  opacity: 1 !important;
+  color: currentColor;
+  stroke: currentColor !important;
+  flex-shrink: 0;
+}
+
+.uiverse-shell .chain-config-copy::before {
+  display: none !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-config-copy {
+  background: rgba(15, 23, 42, 0.72) !important;
+  color: #67e8f9 !important;
+  border: 1px solid rgba(125, 211, 252, 0.18) !important;
+}
+
+.uiverse-shell .chain-flow-entry-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  position: relative;
+  z-index: 1;
 }
 
 .uiverse-shell[data-theme="light"] tbody tr {

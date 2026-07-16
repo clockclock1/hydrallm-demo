@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus,
-  Trash2,
-  Edit3,
   X,
   GitBranch,
-  GripVertical,
-  Power,
-  PowerOff,
-  Copy,
   ChevronDown,
   ChevronUp,
   Shuffle,
   Layers,
   ArrowRight,
   Gauge,
-  Zap,
   Timer,
   RotateCcw,
   ShieldAlert,
@@ -469,7 +462,6 @@ function ChainEditor({
                         <div className="flex min-w-0 items-center gap-2">
                           <button
                             type="button"
-                            data-queue-icon="↕"
                             onPointerDown={event => handleDragStart(event, idx)}
                             onPointerUp={resetDragState}
                             onPointerCancel={resetDragState}
@@ -477,7 +469,7 @@ function ChainEditor({
                             title="拖动调整顺序"
                             aria-label={`调整 ${model.modelName} 的顺序`}
                           >
-                            <GripVertical size={15} />
+                            <span className="fallback-icon" aria-hidden="true">::</span>
                           </button>
                           <span className={cn(
                             'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
@@ -495,25 +487,23 @@ function ChainEditor({
                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                           <button
                             type="button"
-                            data-queue-icon="↑"
                             onClick={() => moveModel(idx, -1)}
                             disabled={idx === 0}
                             className="queue-icon-button inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                             title="上移"
                             aria-label={`上移 ${model.modelName}`}
                           >
-                            <ChevronUp size={14} />
+                            <span className="fallback-icon" aria-hidden="true">^</span>
                           </button>
                           <button
                             type="button"
-                            data-queue-icon="↓"
                             onClick={() => moveModel(idx, 1)}
                             disabled={idx === orderedModels.length - 1}
                             className="queue-icon-button inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                             title="下移"
                             aria-label={`下移 ${model.modelName}`}
                           >
-                            <ChevronDown size={14} />
+                            <span className="fallback-icon" aria-hidden="true">v</span>
                           </button>
                           <button
                             type="button"
@@ -526,8 +516,10 @@ function ChainEditor({
                             )}
                             title={model.enabled ? '点击禁用模型' : '点击启用模型'}
                           >
-                            {model.enabled ? <Power size={13} /> : <PowerOff size={13} />}
-                            {model.enabled ? '已启用' : '已禁用'}
+                            <span className="button-content-layer">
+                              <span className="fallback-icon" aria-hidden="true">{model.enabled ? 'ON' : 'X'}</span>
+                              {model.enabled ? '已启用' : '已禁用'}
+                            </span>
                           </button>
                           <button
                             type="button"
@@ -535,8 +527,10 @@ function ChainEditor({
                             className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 shadow-sm transition-colors hover:bg-red-100"
                             title="删除模型"
                           >
-                            <Trash2 size={13} />
-                            删除
+                            <span className="button-content-layer">
+                              <span className="fallback-icon" aria-hidden="true">X</span>
+                              删除
+                            </span>
                           </button>
                         </div>
                       </div>
@@ -678,37 +672,37 @@ export default function FailoverChains() {
               {isExpanded && (
                 <div className="border-t border-slate-100">
                   {/* Proxy Info */}
-                  <div className="px-4 py-3 sm:px-5 bg-gradient-to-r from-blue-50/50 to-violet-50/50 flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
+                  <div className="chain-config-strip px-4 py-3 sm:px-5 bg-gradient-to-r from-blue-50/50 to-violet-50/50 flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">代理模型：</span>
-                      <code className="bg-white px-2 py-0.5 rounded border border-slate-200 text-blue-600 font-mono text-xs">{chain.proxyModelName}</code>
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-blue-600 font-mono text-xs">{chain.proxyModelName}</code>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">API Key：</span>
-                      <code className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">{chain.proxyApiKey.slice(0, 12)}...</code>
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">{chain.proxyApiKey.slice(0, 12)}...</code>
                       <button
                         onClick={() => navigator.clipboard.writeText(chain.proxyApiKey)}
-                        className="text-slate-400 hover:text-blue-600 transition-colors"
+                        className="chain-config-copy text-slate-400 hover:text-blue-600 transition-colors"
                         title="复制"
                       >
-                        <Copy size={12} />
+                        <span className="fallback-icon" aria-hidden="true">C</span>
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">并发：</span>
-                      <code className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
                         {chain.concurrency || 1} 线程 / 延迟 {chain.releaseDelaySeconds || 0}s
                       </code>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">队列：</span>
-                      <code className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
                         T:{chain.targetTimeoutSeconds || chain.models[0]?.timeout || 30}s / R:{chain.targetMaxRetries ?? chain.models[0]?.maxRetries ?? 0}
                       </code>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">熔断：</span>
-                      <code className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
                         F:{chain.circuitFailureThreshold || 3} / C:{chain.circuitCooldownMinutes || 10}m
                       </code>
                     </div>
@@ -719,9 +713,11 @@ export default function FailoverChains() {
                     <p className="text-xs font-medium text-slate-500 mb-3">故障转移流程</p>
                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
                       {/* Request entry */}
-                      <div className="flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-2 rounded-lg text-xs font-medium shadow-sm">
-                        <Zap size={12} className="inline mr-1" />
-                        请求入口
+                      <div className="chain-flow-entry flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white px-3 py-2 rounded-lg text-xs font-medium shadow-sm">
+                        <span className="chain-flow-entry-content">
+                          <span className="fallback-icon" aria-hidden="true">&gt;</span>
+                          请求入口
+                        </span>
                       </div>
                       <ArrowRight size={16} className="text-slate-300 flex-shrink-0" />
 
@@ -761,7 +757,7 @@ export default function FailoverChains() {
 
                       <ArrowRight size={16} className="text-slate-300 flex-shrink-0" />
                       <div className="flex-shrink-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-medium shadow-sm">
-                        ✓ 响应
+                        OK 响应
                       </div>
                     </div>
                   </div>
@@ -788,13 +784,19 @@ export default function FailoverChains() {
                         onClick={() => { setEditingChain(chain); setShowEditor(true); }}
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
                       >
-                        <Edit3 size={12} /> 编辑
+                        <span className="button-content-layer">
+                          <span className="fallback-icon" aria-hidden="true">E</span>
+                          编辑
+                        </span>
                       </button>
                       <button
                         onClick={() => dispatch({ type: 'DELETE_CHAIN', id: chain.id })}
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 size={12} /> 删除
+                        <span className="button-content-layer">
+                          <span className="fallback-icon" aria-hidden="true">X</span>
+                          删除
+                        </span>
                       </button>
                     </div>
                   </div>
