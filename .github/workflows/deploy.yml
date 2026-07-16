@@ -14,38 +14,17 @@ jobs:
       deployments: write
 
     steps:
-      # 拉取最新代码
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装 Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # ========== 构建 Vue 着陆页 ==========
-      - name: Install Vue landing page deps
-        working-directory: .
-        run: npm install
+      - name: Build (Vue + React UI + SW)
+        run: npm install && npm run build
 
-      - name: Build Vue landing page
-        run: npm run build
-
-      # ========== 构建 React UI 演示 ==========
-      - name: Install React UI deps
-        working-directory: ./ui
-        run: npm install
-
-      - name: Build React UI
-        working-directory: ./ui
-        run: npm run build
-
-      # ========== 复制 SW 到正确位置 ==========
-      - name: Copy Service Worker
-        run: cp ui/public/sw.js dist/ui/sw.js
-
-      # ========== 部署到 Cloudflare Pages ==========
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
