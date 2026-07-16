@@ -7,39 +7,27 @@
 | 页面 | 路径 | 说明 |
 |---|---|---|
 | **着陆页** | `/` | Vue 3 项目介绍页（特性、技术栈、故障转移流程） |
-| **交互演示** | `/ui/` | 真正的 HydraLLM 管理界面（React UI + Service Worker Mock API） |
+| **交互演示** | `/ui/` | 真正的 HydraLLM 管理界面（React UI + fetch 拦截器 Mock API） |
 
-> 🧪 交互演示页通过 Service Worker 拦截所有 `/api/*` 请求并返回模拟数据，界面操作完全真实，无需后端服务即可体验完整的配置、测试、统计、故障转移等功能。
+> 🧪 交互演示页通过 fetch 拦截器（内嵌在 `index.html`）拦截所有 `/api/*` 请求，返回模拟数据，无需后端即可体验完整功能。
 
 **上游项目**：[clockclock1/HydraLLM](https://github.com/clockclock1/HydraLLM)
 
 ---
 
-## 🚀 快速部署到 Cloudflare Pages
+## 🔄 自动同步机制
 
-### 前提条件
+本仓库的 `ui/` 目录会自动与上游 HydraLLM 项目保持同步：
 
-在 [Cloudflare Dashboard](https://dash.cloudflare.com/) 获取：
+- GitHub Actions **每 30 分钟**检查上游 HydraLLM 是否有新提交
+- 如果 `ui/src/` 有更新，自动 commit 到 `main` 分支
+- `main` 分支更新后，Cloudflare Pages 的 Git 集成自动触发构建部署
 
-1. **Account ID**：在任意域名概览页右上角可看到
-2. **API Token**：
-   - 进入 **My Profile** → **API Tokens**
-   - 点击 **Create Token** → 选择 **Edit Cloudflare Workers** 模板
-   - Account Resources 设置为「Include」你的账户
-   - 点击 **Create Token**
+> 同步 workflow 在 `.github/workflows/sync-upstream.yml`，也可在仓库 Actions 页手动触发。
 
-### 配置 GitHub Secrets
+---
 
-在 GitHub 仓库 `Settings → Secrets and variables → Actions` 中添加：
-
-| Secret 名称 | 值 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | 上面创建的 API Token |
-| `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare Account ID |
-
-完成后，每次推送到 `main` 分支都会自动触发构建并部署。
-
-### 方式 B：Cloudflare Dashboard 手动绑定
+## 🚀 部署到 Cloudflare Pages（Git 集成）
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Pages** → **Create a project** → **Connect to Git**
 2. 选择此仓库
@@ -48,43 +36,27 @@
    | 字段 | 值 |
    |---|---|
    | **Project name** | `hydrallm-demo` |
-   | **Build command** | `npm install && npm run build && cd ui && npm install && npm run build && cp public/sw.js ../dist/ui/sw.js` |
+   | **Build command** | `npm install && npm run build` |
    | **Build output directory** | `dist` |
 
-4. 点击 **Save and Deploy** 即可
+4. 点击 **Save and Deploy**
+5. 之后每次 `main` 分支更新，Cloudflare Pages 都会自动重新构建部署
 
----
-
-## 🌐 自定义域名
-
-在 Cloudflare Pages 项目设置中：
-
-1. 进入 **Custom domains**
-2. 点击 **Set up a custom domain**
-3. 输入你的域名（如 `hydrallm.example.com`）
-4. 按提示在 DNS 解析中添加一条 `CNAME` 记录指向 `hydrallm-demo.pages.dev`
-
-Cloudflare 会免费自动签发 SSL 证书。
+> 无需配置 GitHub Actions Secrets、无需 wrangler、无需 API Token。
 
 ---
 
 ## 🛠️ 本地开发
 
 ```bash
-# 安装 Vue 着陆页依赖
-npm install
+# Vue 着陆页
+npm install && npm run dev
 
-# 启动 Vue 开发服务器
-npm run dev
+# React UI（需要单独安装依赖）
+cd ui && npm install && npm run dev
 
-# 安装 React UI 依赖
-cd ui && npm install
-
-# React UI 开发
-cd ui && npm run dev
-
-# 生产构建（两个项目）
-cd .. && npm run build:all
+# 完整构建（Vue + React UI 一起）
+npm run build
 ```
 
 > **Node.js >= 18** 即可。
@@ -95,30 +67,20 @@ cd .. && npm run build:all
 
 ```
 hydrallm-demo/
+├── .github/workflows/
+│   └── sync-upstream.yml         # 每 30min 同步上游 HydraLLM ui/src
 ├── src/                          # Vue 3 着陆页源码
-│   ├── main.ts
-│   ├── App.vue
-│   ├── style.css
 │   ├── components/
-│   │   ├── HeroSection.vue       # 首屏 + 演示入口
-│   │   ├── FeaturesGrid.vue
-│   │   ├── DemoFlow.vue
-│   │   ├── StackBadges.vue
-│   │   └── FooterSection.vue
 │   └── data/sections.ts
-├── ui/                           # HydraLLM React UI（完整管理界面）
-│   ├── public/sw.js              # Service Worker Mock API
-│   ├── src/                      # React UI 源码
-│   │   ├── components/
-│   │   ├── store.tsx
-│   │   └── App.tsx
-│   ├── index.html                # 含 SW 注册 + 演示横幅
+├── ui/                           # HydraLLM React UI（自动同步上游）
+│   ├── src/                      # 同步自上游 HydraLLM/ui/src
+│   ├── public/favicon.svg
+│   ├── index.html                # 含 fetch 拦截器 Mock API + 演示横幅
 │   ├── package.json
-│   └── vite.config.ts
-├── .github/workflows/deploy.yml  # GitHub Actions 自动部署
+│   └── vite.config.ts            # base: '/ui/'
+├── public/favicon.svg
 ├── vite.config.ts
 ├── uno.config.ts
-├── wrangler.toml
 └── package.json
 ```
 
@@ -131,10 +93,10 @@ hydrallm-demo/
 | 框架 | Vue 3 + TypeScript | React 19 + TypeScript |
 | 构建 | Vite 6 | Vite 7 (singlefile) |
 | 样式 | UnoCSS + Lucide Icons | Tailwind CSS v4 |
-| 装扮 | — | Service Worker Mock API |
+| Mock API | — | fetch 拦截器（同源 /api/*） |
 
 ---
 
 ## 📝 许可证
 
-Apache-2.0 · Copyright © {{ new Date().getFullYear() }} clockclock1
+Apache-2.0 · Copyright © clockclock1
