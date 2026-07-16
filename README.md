@@ -1,7 +1,15 @@
 # HydraLLM · Cloudflare Pages 示例站
 
 > 接入多个大模型不该是一件头疼的事。
-> 本仓库是 HydraLLM 项目的静态展示页面，托管于 Cloudflare Pages。
+
+本仓库是 HydraLLM 项目的 Cloudflare Pages 示例站，包含两个部分：
+
+| 页面 | 路径 | 说明 |
+|---|---|---|
+| **着陆页** | `/` | Vue 3 项目介绍页（特性、技术栈、故障转移流程） |
+| **交互演示** | `/ui/` | 真正的 HydraLLM 管理界面（React UI + Service Worker Mock API） |
+
+> 🧪 交互演示页通过 Service Worker 拦截所有 `/api/*` 请求并返回模拟数据，界面操作完全真实，无需后端服务即可体验完整的配置、测试、统计、故障转移等功能。
 
 **上游项目**：[clockclock1/HydraLLM](https://github.com/clockclock1/HydraLLM)
 
@@ -9,11 +17,7 @@
 
 ## 🚀 快速部署到 Cloudflare Pages
 
-### 方式 A：GitHub Actions 自动部署（推荐）
-
-推送代码到 `main` 分支后，GitHub Actions 会自动构建并部署到 Cloudflare Pages。
-
-#### 前提条件
+### 前提条件
 
 在 [Cloudflare Dashboard](https://dash.cloudflare.com/) 获取：
 
@@ -24,7 +28,7 @@
    - Account Resources 设置为「Include」你的账户
    - 点击 **Create Token**
 
-#### 配置 GitHub Secrets
+### 配置 GitHub Secrets
 
 在 GitHub 仓库 `Settings → Secrets and variables → Actions` 中添加：
 
@@ -33,17 +37,9 @@
 | `CLOUDFLARE_API_TOKEN` | 上面创建的 API Token |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare Account ID |
 
-完成后，每次推送到 `main` 分支都会自动触发部署。部署完成后可访问：
+完成后，每次推送到 `main` 分支都会自动触发构建并部署。
 
-```
-https://hydrallm-demo.pages.dev
-```
-
-或绑定自定义域名（见下方说明）。
-
----
-
-### 方式 B：Cloudflare Dashboard 手动绑定（零配置 CI）
+### 方式 B：Cloudflare Dashboard 手动绑定
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Pages** → **Create a project** → **Connect to Git**
 2. 选择此仓库
@@ -52,7 +48,7 @@ https://hydrallm-demo.pages.dev
    | 字段 | 值 |
    |---|---|
    | **Project name** | `hydrallm-demo` |
-   | **Build command** | `pnpm install && pnpm build` |
+   | **Build command** | `npm install && npm run build && cd ui && npm install && npm run build && cp public/sw.js ../dist/ui/sw.js` |
    | **Build output directory** | `dist` |
 
 4. 点击 **Save and Deploy** 即可
@@ -75,17 +71,20 @@ Cloudflare 会免费自动签发 SSL 证书。
 ## 🛠️ 本地开发
 
 ```bash
-# 安装依赖
-pnpm install
+# 安装 Vue 着陆页依赖
+npm install
 
-# 启动开发服务器
-pnpm dev
+# 启动 Vue 开发服务器
+npm run dev
 
-# 生产构建
-pnpm build
+# 安装 React UI 依赖
+cd ui && npm install
 
-# 预览构建产物
-pnpm preview
+# React UI 开发
+cd ui && npm run dev
+
+# 生产构建（两个项目）
+cd .. && npm run build:all
 ```
 
 > **Node.js >= 18** 即可。
@@ -96,25 +95,30 @@ pnpm preview
 
 ```
 hydrallm-demo/
-├── src/
-│   ├── main.ts                 # Vue 入口
-│   ├── App.vue                 # 根组件
-│   ├── style.css               # 全局样式
-│   ├── data/
-│   │   └── sections.ts         # 文案与数据配置
-│   └── components/
-│       ├── HeroSection.vue      # 首屏 Hero
-│       ├── FeaturesGrid.vue    # 核心特性
-│       ├── DemoFlow.vue        # 故障转移流程演示
-│       ├── StackBadges.vue     # 技术栈 + API 端点
-│       └── FooterSection.vue   # 页脚
-├── public/
-│   └── favicon.svg             # SVG 图标
-├── .github/workflows/
-│   └── deploy.yml              # GitHub Actions 自动部署
-├── wrangler.toml               # Cloudflare Pages 配置
-├── vite.config.ts              # Vite 构建配置
-├── uno.config.ts               # UnoCSS 样式配置
+├── src/                          # Vue 3 着陆页源码
+│   ├── main.ts
+│   ├── App.vue
+│   ├── style.css
+│   ├── components/
+│   │   ├── HeroSection.vue       # 首屏 + 演示入口
+│   │   ├── FeaturesGrid.vue
+│   │   ├── DemoFlow.vue
+│   │   ├── StackBadges.vue
+│   │   └── FooterSection.vue
+│   └── data/sections.ts
+├── ui/                           # HydraLLM React UI（完整管理界面）
+│   ├── public/sw.js              # Service Worker Mock API
+│   ├── src/                      # React UI 源码
+│   │   ├── components/
+│   │   ├── store.tsx
+│   │   └── App.tsx
+│   ├── index.html                # 含 SW 注册 + 演示横幅
+│   ├── package.json
+│   └── vite.config.ts
+├── .github/workflows/deploy.yml  # GitHub Actions 自动部署
+├── vite.config.ts
+├── uno.config.ts
+├── wrangler.toml
 └── package.json
 ```
 
@@ -122,13 +126,12 @@ hydrallm-demo/
 
 ## ⚡ 技术栈
 
-| 类别 | 技术 |
-|---|---|
-| 框架 | Vue 3 + TypeScript |
-| 构建 | Vite 6 |
-| 样式 | UnoCSS（原子化 CSS + iconify 图标） |
-| 部署 | Cloudflare Pages + GitHub Actions |
-| 字体 | Google Fonts（Inter + JetBrains Mono） |
+| 类别 | 着陆页 | 交互演示 |
+|---|---|---|
+| 框架 | Vue 3 + TypeScript | React 19 + TypeScript |
+| 构建 | Vite 6 | Vite 7 (singlefile) |
+| 样式 | UnoCSS + Lucide Icons | Tailwind CSS v4 |
+| 装扮 | — | Service Worker Mock API |
 
 ---
 

@@ -77,6 +77,15 @@ import { site, stats } from '../data/sections'
         <span class="i-lucide-message-square h-4 w-4" />
         反馈问题
       </a>
+      <a
+        href="/ui/"
+        target="_blank"
+        rel="noopener"
+        class="btn-primary px-6 py-2.5 text-sm font-semibold"
+      >
+        <span class="i-lucide-flask-conical h-4 w-4" />
+        体验演示
+      </a>
     </div>
 
     <!-- 统计数字 -->

@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy
+    name: Build & Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,22 +18,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装 Node 18+
+      # 安装 Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
 
-      # 安装依赖
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      # ========== 构建 Vue 着陆页 ==========
+      - name: Install Vue landing page deps
+        working-directory: .
+        run: npm install
 
-      # 构建前端
-      - name: Build
-        run: pnpm build
+      - name: Build Vue landing page
+        run: npm run build
 
-      # 部署到 Cloudflare Pages
+      # ========== 构建 React UI 演示 ==========
+      - name: Install React UI deps
+        working-directory: ./ui
+        run: npm install
+
+      - name: Build React UI
+        working-directory: ./ui
+        run: npm run build
+
+      # ========== 复制 SW 到正确位置 ==========
+      - name: Copy Service Worker
+        run: cp ui/public/sw.js dist/ui/sw.js
+
+      # ========== 部署到 Cloudflare Pages ==========
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:

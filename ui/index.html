@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>HydraLLM · 模型故障转移代理 - Model Failover Proxy</title>
+    <meta name="description" content="HydraLLM Demo - LLM Failover Proxy Management UI" />
+    <link rel="icon" href="/ui/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- 演示提示横幅 -->
+    <div id="demo-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;padding:6px 12px;background:linear-gradient(135deg,#0a96f0,#06b6d4);color:#fff;font-size:13px;font-family:system-ui,sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(8px);">
+      <span>🧪 演示模式 — 所有数据均为模拟，不与真实 AI 后端交互</span>
+      <a href="/" style="color:#fff;text-decoration:underline;font-weight:500;">← 返回介绍页</a>
+    </div>
+    <script>
+      // 演示 banner
+      (function(){var b=document.getElementById('demo-banner');if(b){b.style.display='flex';document.body.style.paddingTop='36px';}})();
+
+      // 注册 Service Worker（Mock API）
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        window.addEventListener('load', function() {
+          var swUrl = '/ui/sw.js';
+          navigator.serviceWorker.register(swUrl, { scope: '/ui/' })
+            .then(function(reg) { console.log('[HydraLLM Demo] SW registered', reg.scope); })
+            .catch(function(err) { console.warn('[HydraLLM Demo] SW failed', err); });
+        });
+      } else {
+        // 本地开发时也 Mock API（通过 fetch 拦截）
+        console.log('[HydraLLM Demo] Local dev: API mock via fetch wrapper');
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

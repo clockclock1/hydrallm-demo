@@ -1,0 +1,769 @@
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import type { Provider, FailoverChain, Page, LogEntry, ActiveThread, ModelCapability, ModelTestResult, ModelTestTarget, ChannelModelStats } from './types';
+
+interface BackendTarget {
+  name?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  modelName?: string;
+  modelNameTemplate?: string;
+  enabled?: boolean;
+  timeoutMs?: number;
+  priority?: number;
+  weight?: number;
+  maxRetries?: number;
+}
+
+interface BackendModel {
+  publicName: string;
+  enabled?: boolean;
+  strategy?: FailoverChain['strategy'];
+  concurrency?: number;
+  releaseDelayMs?: number;
+  circuitBreaker?: {
+    failureThreshold?: number;
+    cooldownMinutes?: number;
+    immediateCooldownStatusCodes?: number[];
+  };
+  targets?: BackendTarget[];
+}
+
+interface BackendProvider {
+  id?: string;
+  name?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  models?: string[];
+}
+
+interface BackendConfig {
+  adminToken: string;
+  proxyKeys: { name?: string; key: string; enabled?: boolean }[];
+  failoverStatusCodes: number[];
+  requestTimeoutMs: number;
+  circuitBreaker?: {
+    failureThreshold?: number;
+    cooldownMinutes?: number;
+    immediateCooldownStatusCodes?: number[];
+  };
+  modelSource?: unknown;
+  providers?: BackendProvider[];
+  models: BackendModel[];
+}
+
+interface BackendStats {
+  requests: number;
+  successes: number;
+  failures: number;
+  failovers?: number;
+  chains?: Record<string, {
+    requests: number;
+    successes: number;
+    failures: number;
+    failovers: number;
+  }>;
+  channelModels?: Record<string, ChannelModelStats>;
+  logs?: Array<{
+    id: string;
+    timestamp: number;
+    chainName: string;
+    originalModel: string;
+    failedModels: string[];
+    finalModel: string;
+    status: 'success' | 'failed';
+    latency: number;
+    error?: string;
+  }>;
+  activeThreads?: ActiveThread[];
+}
+
+interface State {
+  currentPage: Page;
+  providers: Provider[];
+  chains: FailoverChain[];
+  logs: LogEntry[];
+  activeThreads: ActiveThread[];
+  sidebarCollapsed: boolean;
+  adminToken: string;
+  adminSession: string;
+  authenticated: boolean;
+  authChecked: boolean;
+  configLoaded: boolean;
+  saveStatus: 'idle' | 'loading' | 'saving' | 'saved' | 'error';
+  saveError: string;
+  backendConfig: BackendConfig | null;
+  backendStats: BackendStats | null;
+}
+
+type Action =
+  | { type: 'SET_PAGE'; page: Page }
+  | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'SET_ADMIN_TOKEN'; token: string }
+  | { type: 'SET_ADMIN_SESSION'; session: string }
+  | { type: 'CLEAR_AUTH' }
+  | { type: 'SET_AUTH_CHECKED'; checked: boolean }
+  | { type: 'SET_SAVE_STATUS'; status: State['saveStatus']; error?: string }
+  | { type: 'LOAD_BACKEND_STATE'; config: BackendConfig; stats?: BackendStats | null }
+  | { type: 'LOAD_BACKEND_STATS'; stats: BackendStats }
+  | { type: 'ADD_PROVIDER'; provider: Provider }
+  | { type: 'UPDATE_PROVIDER'; provider: Provider }
+  | { type: 'DELETE_PROVIDER'; id: string }
+  | { type: 'SET_PROVIDER_MODELS'; id: string; models: string[] }
+  | { type: 'SET_PROVIDER_STATUS'; id: string; status: Provider['status']; latency?: number }
+  | { type: 'SET_PROVIDER_HEALTHS'; providers: Array<{ id?: string; name?: string; baseUrl: string; status: Provider['status']; latency?: number; models?: string[]; error?: string }> }
+  | { type: 'ADD_CHAIN'; chain: FailoverChain }
+  | { type: 'UPDATE_CHAIN'; chain: FailoverChain }
+  | { type: 'DELETE_CHAIN'; id: string }
+  | { type: 'ADD_LOG'; log: LogEntry };
+
+const defaultConfig: BackendConfig = {
+  adminToken: 'admin',
+  proxyKeys: [{ name: 'test-key', key: 'sk-local-test', enabled: true }],
+  failoverStatusCodes: [401, 403, 408, 409, 429, 500, 502, 503, 504],
+  requestTimeoutMs: 120000,
+  circuitBreaker: {
+    failureThreshold: 3,
+    cooldownMinutes: 10,
+    immediateCooldownStatusCodes: [429],
+  },
+  modelSource: {
+    enabled: false,
+    url: '',
+    apiKey: '',
+    refreshSeconds: 300,
+    include: '',
+    exclude: '',
+    publicPrefix: '',
+    publicSuffix: '',
+    targets: [],
+  },
+  providers: [],
+  models: [],
+};
+
+const ADMIN_SESSION_KEY = 'adminSession';
+
+function getStoredAdminSession() {
+  if (typeof window === 'undefined') return '';
+  const localSession = window.localStorage.getItem(ADMIN_SESSION_KEY) || '';
+  const legacySession = window.sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+  if (!localSession && legacySession) {
+    window.localStorage.setItem(ADMIN_SESSION_KEY, legacySession);
+  }
+  return localSession || legacySession;
+}
+
+function setStoredAdminSession(session: string) {
+  window.localStorage.setItem(ADMIN_SESSION_KEY, session);
+  window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+}
+
+function clearStoredAdminSession() {
+  window.localStorage.removeItem(ADMIN_SESSION_KEY);
+  window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+}
+
+const initialState: State = {
+  currentPage: 'dashboard',
+  sidebarCollapsed: false,
+  providers: [],
+  chains: [],
+  logs: [],
+  activeThreads: [],
+  adminToken: '',
+  adminSession: getStoredAdminSession(),
+  authenticated: false,
+  authChecked: false,
+  configLoaded: false,
+  saveStatus: 'idle',
+  saveError: '',
+  backendConfig: null,
+  backendStats: null,
+};
+
+function normalizeChainModels(models: FailoverChain['models']) {
+  return [...models]
+    .sort((a, b) => a.priority - b.priority)
+    .map((model, index) => ({
+      ...model,
+      priority: index + 1,
+      weight: 1,
+      maxRetries: Math.max(0, Math.floor(Number(model.maxRetries) || 0)),
+      timeout: Math.max(1, Math.floor(Number(model.timeout) || 30)),
+      enabled: model.enabled !== false,
+    }));
+}
+
+function normalizeChain(chain: FailoverChain): FailoverChain {
+  const models = normalizeChainModels(chain.models || []);
+  const firstModel = models[0];
+  return {
+    ...chain,
+    strategy: chain.strategy === 'weighted' ? 'priority' : chain.strategy || 'priority',
+    concurrency: Math.max(1, Math.min(64, Math.floor(Number(chain.concurrency) || 1))),
+    releaseDelaySeconds: Math.max(0, Math.min(3600, Math.floor(Number(chain.releaseDelaySeconds) || 0))),
+    targetTimeoutSeconds: Math.max(1, Math.floor(Number(chain.targetTimeoutSeconds || firstModel?.timeout) || 30)),
+    targetMaxRetries: Math.max(0, Math.floor(Number(chain.targetMaxRetries ?? firstModel?.maxRetries) || 0)),
+    circuitFailureThreshold: Math.max(1, Math.floor(Number(chain.circuitFailureThreshold) || 3)),
+    circuitCooldownMinutes: Math.max(1, Math.floor(Number(chain.circuitCooldownMinutes) || 10)),
+    models,
+  };
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'SET_PAGE':
+      return { ...state, currentPage: action.page };
+    case 'TOGGLE_SIDEBAR':
+      return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
+    case 'SET_ADMIN_TOKEN':
+      return { ...state, adminToken: action.token };
+    case 'SET_ADMIN_SESSION':
+      setStoredAdminSession(action.session);
+      return { ...state, adminSession: action.session, authenticated: false, authChecked: true };
+    case 'CLEAR_AUTH':
+      clearStoredAdminSession();
+      return {
+        ...state,
+        adminSession: '',
+        authenticated: false,
+        authChecked: true,
+        configLoaded: false,
+        backendConfig: null,
+        backendStats: null,
+        providers: [],
+        chains: [],
+        logs: [],
+        activeThreads: [],
+        saveStatus: 'idle',
+        saveError: '',
+      };
+    case 'SET_AUTH_CHECKED':
+      return { ...state, authChecked: action.checked };
+    case 'SET_SAVE_STATUS':
+      return { ...state, saveStatus: action.status, saveError: action.error || '' };
+    case 'LOAD_BACKEND_STATE': {
+      const mapped = backendToUi(action.config, action.stats || null);
+      return {
+        ...state,
+        ...mapped,
+        activeThreads: ((action.stats || null)?.activeThreads || []).map(normalizeActiveThread),
+        backendConfig: action.config,
+        backendStats: action.stats || null,
+        adminToken: action.config.adminToken || '',
+        authenticated: true,
+        authChecked: true,
+        configLoaded: true,
+        saveStatus: 'idle',
+        saveError: '',
+      };
+    }
+    case 'LOAD_BACKEND_STATS':
+      return applyStatsToState(state, action.stats);
+    case 'ADD_PROVIDER':
+      return { ...state, providers: [...state.providers, action.provider] };
+    case 'UPDATE_PROVIDER':
+      return { ...state, providers: state.providers.map(p => p.id === action.provider.id ? action.provider : p) };
+    case 'DELETE_PROVIDER':
+      return {
+        ...state,
+        providers: state.providers.filter(p => p.id !== action.id),
+        chains: state.chains.map(chain => ({
+          ...chain,
+          models: normalizeChainModels(chain.models.filter(model => model.providerId !== action.id)),
+        })),
+      };
+    case 'SET_PROVIDER_MODELS':
+      return { ...state, providers: state.providers.map(p => p.id === action.id ? { ...p, models: action.models } : p) };
+    case 'SET_PROVIDER_STATUS':
+      return { ...state, providers: state.providers.map(p => p.id === action.id ? { ...p, status: action.status, latency: action.latency, lastCheck: Date.now() } : p) };
+    case 'SET_PROVIDER_HEALTHS':
+      return {
+        ...state,
+        providers: state.providers.map((provider) => {
+          const health = action.providers.find((item) =>
+            (item.id && item.id === provider.id) ||
+            (item.baseUrl === provider.baseUrl && (!item.name || item.name === provider.name))
+          );
+          if (!health) return provider;
+          return {
+            ...provider,
+            status: health.status,
+            latency: health.latency,
+            lastCheck: Date.now(),
+          };
+        }),
+      };
+    case 'ADD_CHAIN':
+      return { ...state, chains: [...state.chains, normalizeChain(action.chain)] };
+    case 'UPDATE_CHAIN':
+      return { ...state, chains: state.chains.map(c => c.id === action.chain.id ? normalizeChain(action.chain) : c) };
+    case 'DELETE_CHAIN':
+      return { ...state, chains: state.chains.filter(c => c.id !== action.id) };
+    case 'ADD_LOG':
+      return { ...state, logs: [action.log, ...state.logs].slice(0, 200) };
+    default:
+      return state;
+  }
+}
+
+function applyStatsToState(state: State, stats: BackendStats): State {
+  return {
+    ...state,
+    backendStats: stats,
+    activeThreads: (stats.activeThreads || []).map(normalizeActiveThread),
+    chains: state.chains.map((chain) => {
+      const modelStats = stats.chains?.[chain.proxyModelName];
+      if (!modelStats) return chain;
+      const totalFinished = modelStats.successes + modelStats.failures;
+      const successRate = totalFinished ? Number(((modelStats.successes / totalFinished) * 100).toFixed(1)) : 100;
+      return {
+        ...chain,
+        totalRequests: modelStats.requests,
+        failoverCount: modelStats.failovers,
+        successRate,
+      };
+    }),
+    logs: (stats.logs || []).map((log) => ({
+      id: log.id,
+      timestamp: log.timestamp,
+      chainName: log.chainName,
+      originalModel: log.originalModel,
+      failedModels: log.failedModels || [],
+      finalModel: log.finalModel,
+      status: log.status,
+      latency: log.latency,
+      error: log.error,
+    })),
+  };
+}
+
+function normalizeActiveThread(thread: ActiveThread): ActiveThread {
+  return {
+    id: String(thread.id || ''),
+    slot: Math.max(0, Math.floor(Number(thread.slot) || 0)),
+    chainName: String(thread.chainName || ''),
+    requestedModel: String(thread.requestedModel || ''),
+    targetName: String(thread.targetName || ''),
+    targetModel: String(thread.targetModel || ''),
+    targetBaseUrl: String(thread.targetBaseUrl || ''),
+    attempt: Math.max(0, Math.floor(Number(thread.attempt) || 0)),
+    maxAttempts: Math.max(0, Math.floor(Number(thread.maxAttempts) || 0)),
+    phase: String(thread.phase || 'unknown'),
+    status: String(thread.status || ''),
+    startedAt: Number(thread.startedAt || 0),
+    updatedAt: Number(thread.updatedAt || 0),
+    releaseAt: Number(thread.releaseAt || 0),
+    failedModels: Array.isArray(thread.failedModels) ? thread.failedModels.map(String) : [],
+    attemptErrors: Array.isArray(thread.attemptErrors)
+      ? thread.attemptErrors.map(item => ({
+          target: String(item.target || ''),
+          attempt: item.attempt === undefined ? undefined : Math.max(0, Math.floor(Number(item.attempt) || 0)),
+          status: item.status === undefined ? undefined : Math.max(0, Math.floor(Number(item.status) || 0)),
+          message: String(item.message || ''),
+          detail: item.detail === undefined ? undefined : String(item.detail || ''),
+        }))
+      : [],
+  };
+}
+
+function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<State, 'providers' | 'chains' | 'logs'> {
+  const providers: Provider[] = (config.providers || [])
+    .filter((provider) => provider?.baseUrl)
+    .map((provider) => ({
+      id: provider.id || uuidv4(),
+      name: provider.name || providerNameFromUrl(provider.baseUrl || ''),
+      baseUrl: provider.baseUrl || '',
+      apiKey: provider.apiKey || '',
+      models: uniqueStrings(provider.models || []),
+      status: 'unknown',
+    }));
+  const providerKeyToId = new Map<string, string>();
+  const firstProxyKey = config.proxyKeys.find(key => key.enabled !== false)?.key || 'sk-local-test';
+
+  providers.forEach((provider) => {
+    providerKeyToId.set(providerKey(provider.baseUrl, provider.apiKey, provider.name), provider.id);
+  });
+
+  function ensureProvider(target: BackendTarget): string {
+    const baseUrl = target.baseUrl || '';
+    const apiKey = target.apiKey || '';
+    const key = providerKey(baseUrl, apiKey, target.name || '');
+    const existing = providerKeyToId.get(key);
+    if (existing) return existing;
+
+    const provider: Provider = {
+      id: uuidv4(),
+      name: target.name || providerNameFromUrl(baseUrl),
+      baseUrl,
+      apiKey,
+      models: [],
+      status: 'unknown',
+    };
+    providers.push(provider);
+    providerKeyToId.set(key, provider.id);
+    return provider.id;
+  }
+
+  const chains: FailoverChain[] = (config.models || []).map((model) => {
+    const modelStats = stats?.chains?.[model.publicName];
+    const modelCircuitBreaker = model.circuitBreaker || config.circuitBreaker || defaultConfig.circuitBreaker;
+    const totalRequests = modelStats?.requests || 0;
+    const totalFinished = (modelStats?.successes || 0) + (modelStats?.failures || 0);
+    const successRate = totalFinished ? Number((((modelStats?.successes || 0) / totalFinished) * 100).toFixed(1)) : 100;
+    const models = (model.targets || []).map((target, index) => {
+      const providerId = ensureProvider(target);
+      const provider = providers.find(item => item.id === providerId);
+      const modelName = target.modelName || target.modelNameTemplate || model.publicName;
+      if (provider && modelName && !provider.models.includes(modelName)) {
+        provider.models.push(modelName);
+      }
+      return {
+        providerId,
+        modelName,
+        priority: Math.max(1, Math.floor(Number(target.priority) || index + 1)),
+        weight: 1,
+        maxRetries: Math.max(0, Math.floor(Number(target.maxRetries) || 0)),
+        timeout: Math.max(1, Math.round((target.timeoutMs || config.requestTimeoutMs || 30000) / 1000)),
+        enabled: target.enabled !== false,
+      };
+    }).sort((a, b) => a.priority - b.priority).map((item, index) => ({ ...item, priority: index + 1 }));
+    const firstTarget = models[0];
+
+    return {
+      id: uuidv4(),
+      name: model.publicName,
+      description: `代理模型 ${model.publicName}`,
+      models,
+      strategy: model.strategy === 'weighted' ? 'priority' : model.strategy || 'priority',
+      proxyModelName: model.publicName,
+      proxyApiKey: firstProxyKey,
+      concurrency: Math.max(1, Math.min(64, Math.floor(Number(model.concurrency) || 1))),
+      releaseDelaySeconds: Math.max(0, Math.min(3600, Math.round(Number(model.releaseDelayMs || 0) / 1000))),
+      targetTimeoutSeconds: Math.max(1, Math.floor(Number(firstTarget?.timeout) || 30)),
+      targetMaxRetries: Math.max(0, Math.floor(Number(firstTarget?.maxRetries) || 0)),
+      circuitFailureThreshold: Math.max(1, Math.floor(Number(modelCircuitBreaker?.failureThreshold) || 3)),
+      circuitCooldownMinutes: Math.max(1, Math.floor(Number(modelCircuitBreaker?.cooldownMinutes) || 10)),
+      enabled: model.enabled !== false,
+      createdAt: Date.now(),
+      totalRequests,
+      failoverCount: modelStats?.failovers || 0,
+      successRate,
+    };
+  });
+
+  const logs: LogEntry[] = (stats?.logs || []).map((log) => ({
+    id: log.id,
+    timestamp: log.timestamp,
+    chainName: log.chainName,
+    originalModel: log.originalModel,
+    failedModels: log.failedModels || [],
+    finalModel: log.finalModel,
+    status: log.status,
+    latency: log.latency,
+    error: log.error,
+  }));
+
+  return { providers, chains, logs };
+}
+
+function providerKey(baseUrl: string, apiKey: string, name: string) {
+  return `${baseUrl || ''}||${apiKey || ''}||${name || ''}`;
+}
+
+function uniqueStrings(items: string[]) {
+  return [...new Set(items.map(String).filter(Boolean))];
+}
+
+function uiToBackend(state: State): BackendConfig {
+  const base = state.backendConfig || defaultConfig;
+  const keyMap = new Map<string, string>();
+  state.chains.forEach((chain, index) => {
+    if (chain.proxyApiKey) keyMap.set(chain.proxyApiKey, chain.name || `chain-${index + 1}`);
+  });
+
+  const proxyKeys = Array.from(keyMap.entries()).map(([key, name]) => ({
+    name,
+    key,
+    enabled: true,
+  }));
+
+  const models: BackendModel[] = state.chains.map((chain) => ({
+    publicName: chain.proxyModelName,
+    enabled: chain.enabled,
+    strategy: chain.strategy,
+    concurrency: Math.max(1, Math.min(64, Math.floor(Number(chain.concurrency) || 1))),
+    releaseDelayMs: Math.max(0, Math.min(3600, Math.floor(Number(chain.releaseDelaySeconds) || 0))) * 1000,
+    circuitBreaker: {
+      failureThreshold: Math.max(1, Math.floor(Number(chain.circuitFailureThreshold) || 3)),
+      cooldownMinutes: Math.max(1, Math.floor(Number(chain.circuitCooldownMinutes) || 10)),
+      immediateCooldownStatusCodes: base.circuitBreaker?.immediateCooldownStatusCodes || [429],
+    },
+    targets: [...chain.models]
+      .sort((a, b) => a.priority - b.priority)
+      .map((model, index) => {
+        const provider = state.providers.find(item => item.id === model.providerId);
+        return {
+          name: provider?.name || model.modelName,
+          baseUrl: provider?.baseUrl || '',
+          apiKey: provider?.apiKey || '',
+          modelName: model.modelName,
+          enabled: model.enabled,
+          priority: index + 1,
+          weight: 1,
+          maxRetries: Math.max(0, Math.floor(Number(chain.targetMaxRetries ?? model.maxRetries) || 0)),
+          timeoutMs: Math.max(1, Math.floor(Number(chain.targetTimeoutSeconds || model.timeout) || 30)) * 1000,
+        };
+      })
+      .filter(target => target.baseUrl && target.apiKey && target.modelName),
+  }));
+
+  const providers: BackendProvider[] = state.providers.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKey,
+    models: uniqueStrings(provider.models || []),
+  }));
+
+  return {
+    ...base,
+    adminToken: state.adminToken || base.adminToken || 'admin',
+    proxyKeys: proxyKeys.length ? proxyKeys : base.proxyKeys,
+    circuitBreaker: base.circuitBreaker || defaultConfig.circuitBreaker,
+    providers,
+    models,
+  };
+}
+
+function providerNameFromUrl(baseUrl: string) {
+  try {
+    return new URL(baseUrl).hostname.replace(/^api\./, '');
+  } catch {
+    return baseUrl || 'Provider';
+  }
+}
+
+async function readJsonError(res: Response) {
+  const body = await res.json().catch(() => null);
+  return body?.error?.message || `${res.status} ${res.statusText}`;
+}
+
+const StoreContext = createContext<{
+  state: State;
+  dispatch: React.Dispatch<Action>;
+  login: (token: string) => Promise<void>;
+  logout: () => Promise<void>;
+  loadConfig: (sessionOverride?: string) => Promise<void>;
+  saveConfig: () => Promise<void>;
+  fetchProviderModels: (url: string, apiKey: string) => Promise<string[]>;
+  refreshProviderHealth: () => Promise<void>;
+  runModelTests: (targets: ModelTestTarget[], capabilities: ModelCapability[], signal?: AbortSignal) => Promise<ModelTestResult[]>;
+} | null>(null);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const adminHeaders = useCallback((sessionOverride?: string) => ({
+    'x-admin-session': sessionOverride || state.adminSession,
+  }), [state.adminSession]);
+
+  const handleUnauthorized = useCallback((res: Response) => {
+    if (res.status === 401) dispatch({ type: 'CLEAR_AUTH' });
+  }, []);
+
+  const loadConfig = useCallback(async (sessionOverride?: string) => {
+    const session = sessionOverride || state.adminSession;
+    if (!session) {
+      dispatch({ type: 'CLEAR_AUTH' });
+      return;
+    }
+    dispatch({ type: 'SET_SAVE_STATUS', status: 'loading' });
+    const res = await fetch('/api/config', {
+      headers: adminHeaders(session),
+    });
+    if (!res.ok) {
+      handleUnauthorized(res);
+      const message = await readJsonError(res);
+      dispatch({ type: 'SET_SAVE_STATUS', status: 'error', error: message });
+      throw new Error(message);
+    }
+    const config = await res.json();
+    const stats = await fetch('/api/stats', {
+      headers: adminHeaders(session),
+    }).then((statsRes) => statsRes.ok ? statsRes.json() : null).catch(() => null);
+    dispatch({ type: 'LOAD_BACKEND_STATE', config, stats });
+  }, [state.adminSession, adminHeaders, handleUnauthorized]);
+
+  const login = useCallback(async (token: string) => {
+    dispatch({ type: 'SET_SAVE_STATUS', status: 'loading' });
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) {
+      const message = await readJsonError(res);
+      dispatch({ type: 'SET_SAVE_STATUS', status: 'error', error: message });
+      throw new Error(message);
+    }
+    const body = await res.json();
+    const session = String(body.session || '');
+    if (!session) throw new Error('Login response did not include a session');
+    dispatch({ type: 'SET_ADMIN_SESSION', session });
+    await loadConfig(session);
+  }, [loadConfig]);
+
+  const logout = useCallback(async () => {
+    const session = state.adminSession;
+    if (session) {
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: adminHeaders(session),
+      }).catch(() => undefined);
+    }
+    dispatch({ type: 'CLEAR_AUTH' });
+  }, [state.adminSession, adminHeaders]);
+
+  const saveConfig = useCallback(async () => {
+    const session = state.adminSession;
+    if (!session) {
+      dispatch({ type: 'CLEAR_AUTH' });
+      return;
+    }
+    dispatch({ type: 'SET_SAVE_STATUS', status: 'saving' });
+    const nextConfig = uiToBackend(state);
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...adminHeaders(session),
+      },
+      body: JSON.stringify(nextConfig),
+    });
+    if (!res.ok) {
+      handleUnauthorized(res);
+      const message = await readJsonError(res);
+      dispatch({ type: 'SET_SAVE_STATUS', status: 'error', error: message });
+      throw new Error(message);
+    }
+    const body = await res.json();
+    const stats = await fetch('/api/stats', {
+      headers: adminHeaders(session),
+    }).then((statsRes) => statsRes.ok ? statsRes.json() : null).catch(() => null);
+    dispatch({ type: 'LOAD_BACKEND_STATE', config: body.config, stats });
+    dispatch({ type: 'SET_SAVE_STATUS', status: 'saved' });
+  }, [state, adminHeaders, handleUnauthorized]);
+
+  const fetchProviderModels = useCallback(async (url: string, apiKey: string) => {
+    const res = await fetch('/api/model-source/preview', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...adminHeaders(),
+      },
+      body: JSON.stringify({ url, apiKey }),
+    });
+    handleUnauthorized(res);
+    if (!res.ok) throw new Error(await readJsonError(res));
+    const body = await res.json();
+    return body.models || [];
+  }, [adminHeaders, handleUnauthorized]);
+
+  const providerHealthSignature = useMemo(
+    () => state.providers.map((provider) => `${provider.id}:${provider.name}:${provider.baseUrl}:${provider.apiKey}`).join('|'),
+    [state.providers]
+  );
+
+  const providerHealthRequest = useMemo(
+    () => state.providers.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      baseUrl: provider.baseUrl,
+      apiKey: provider.apiKey,
+    })),
+    [providerHealthSignature]
+  );
+
+  const refreshProviderHealth = useCallback(async () => {
+    if (!state.configLoaded || !providerHealthRequest.length) return;
+    const res = await fetch('/api/providers/health', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...adminHeaders(),
+      },
+      body: JSON.stringify({ providers: providerHealthRequest }),
+    });
+    handleUnauthorized(res);
+    if (!res.ok) throw new Error(await readJsonError(res));
+    const body = await res.json();
+    dispatch({ type: 'SET_PROVIDER_HEALTHS', providers: body.providers || [] });
+  }, [state.configLoaded, providerHealthRequest, adminHeaders, handleUnauthorized]);
+
+  const runModelTests = useCallback(async (targets: ModelTestTarget[], capabilities: ModelCapability[], signal?: AbortSignal) => {
+    const res = await fetch('/api/model-tests/run', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...adminHeaders(),
+      },
+      signal,
+      body: JSON.stringify({ targets, capabilities }),
+    });
+    handleUnauthorized(res);
+    if (!res.ok) throw new Error(await readJsonError(res));
+    const body = await res.json();
+    return body.results || [];
+  }, [adminHeaders, handleUnauthorized]);
+
+  useEffect(() => {
+    if (state.authChecked) return;
+    if (!state.adminSession) {
+      dispatch({ type: 'SET_AUTH_CHECKED', checked: true });
+      return;
+    }
+    loadConfig(state.adminSession).catch(() => dispatch({ type: 'CLEAR_AUTH' }));
+  }, [state.authChecked, state.adminSession, loadConfig]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!state.configLoaded) return;
+      fetch('/api/stats', { headers: adminHeaders() })
+        .then((res) => {
+          if (res.status === 401) {
+            dispatch({ type: 'CLEAR_AUTH' });
+            return null;
+          }
+          return res.ok ? res.json() : null;
+        })
+        .then((stats) => {
+          if (stats) dispatch({ type: 'LOAD_BACKEND_STATS', stats });
+        })
+        .catch(() => undefined);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [state.configLoaded, adminHeaders]);
+
+  useEffect(() => {
+    if (!state.configLoaded || !state.providers.length) return;
+    refreshProviderHealth().catch(() => undefined);
+    const timer = window.setInterval(() => {
+      refreshProviderHealth().catch(() => undefined);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [state.configLoaded, providerHealthSignature, refreshProviderHealth]);
+
+  return (
+    <StoreContext.Provider value={{ state, dispatch, login, logout, loadConfig, saveConfig, fetchProviderModels, refreshProviderHealth, runModelTests }}>
+      {children}
+    </StoreContext.Provider>
+  );
+}
+
+export function useStore() {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('useStore must be used within StoreProvider');
+  return ctx;
+}

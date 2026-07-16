@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:ui": "cd ui && npm ci 2>/dev/null || true && npm run build",
+    "build:all": "npm run build && npm run build:ui",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name hydrallm-demo"
+    "deploy": "npm run build:all && wrangler pages deploy dist --project-name hydrallm-demo"
   },
   "engines": {
     "node": ">=18.0.0"
