@@ -2,21 +2,33 @@ name: Sync upstream HydraLLM ui/
 
 # 监听上游 HydraLLM 的 ui/ 目录变化，自动同步到本仓库 ui/ 目录。
 # 同步成功后 main 分支更新，Cloudflare Pages Git 集成会自动重新部署。
+#
+# 触发方式：
+#   - schedule: 每小时整点自动检查（UTC）
+#   - workflow_dispatch: 在 Actions 页面手动触发
+#   - repository_dispatch: 外部 webhook 可调用触发（用于上游 push webhook）
+#     curl -X POST -H "Accept: application/vnd.github+json" \
+#       -d '{"event_type":"sync-upstream"}' \
+#       https://api.github.com/repos/clockclock1/hydrallm-demo/dispatches
 
 on:
   schedule:
-    # 每 30 分钟检查一次（UTC 时间）
-    - cron: '*/30 * * * *'
+    # 每小时整点检查（UTC 时间，对应北京时间整点 + 8h）
+    # GitHub schedule 最小粒度是 5min，但整点触发最可靠
+    - cron: '0 * * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types: [sync-upstream]
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   sync:
     name: Sync ui/ from upstream
     runs-on: ubuntu-latest
+    # 平台默认会给 schedule 加延迟，timeout 避免堆积
+    timeout-minutes: 10
 
     steps:
       - name: Checkout this repo
@@ -31,18 +43,46 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Clone upstream HydraLLM
+      - name: Probe upstream HEAD SHA
+        id: probe
         run: |
-          git clone --depth 1 https://github.com/clockclock1/HydraLLM.git /tmp/hydra
+          set -e
+          # 用 GitHub API 拿到上游 HEAD SHA，无需 clone
+          UPSTREAM_SHA=$(curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/clockclock1/HydraLLM/commits/main \
+            | jq -r '.sha')
+          echo "Upstream HEAD: $UPSTREAM_SHA"
+
+          # 从我们仓库已有的同步提交信息里解析上次同步到的 SHA
+          LAST_SYNC=$(git log -1 --pretty=%B --grep='^chore(sync):' ui/src/ 2>/dev/null \
+            | grep -oE 'HydraLLM@[a-f0-9]+' | head -1 | cut -d@ -f2 || true)
+          echo "Last synced: ${LAST_SYNC:-none}"
+
+          if [ -n "$LAST_SYNC" ] && [ "$UPSTREAM_SHA" = "$LAST_SYNC" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "✓ Upstream HEAD unchanged, skipping sync"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "upstream_sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
+            echo "→ Upstream updated, will sync"
+          fi
+
+      - name: Clone upstream HydraLLM
+        if: steps.probe.outputs.skip == 'false'
+        run: |
+          git clone --depth 1 \
+            https://github.com/clockclock1/HydraLLM.git /tmp/hydra
 
       - name: Sync ui/src/ from upstream
+        if: steps.probe.outputs.skip == 'false'
         run: |
           set -e
           echo "==== Before sync ===="
-          ls -la ui/src/
+          ls -la ui/src/ || true
 
-          # 只同步 src/ 目录（不含 vite.config、index.html、package.json）
-          # 这些是我们针对 Cloudflare Pages 演示环境定制的，保留本地版本
+          # 只同步 src/ 目录（保留 vite.config.ts、index.html、package.json
+          # 这三份是针对 Cloudflare Pages 演示环境定制的）
           rm -rf ui/src
           cp -r /tmp/hydra/ui/src ui/src
 
@@ -50,33 +90,44 @@ jobs:
           ls -la ui/src/
 
       - name: Check for changes
+        if: steps.probe.outputs.skip == 'false'
         id: diff
         run: |
           git add ui/src
           if git diff --cached --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "✓ No changes to sync"
+            echo "✓ No content diff after sync"
           else
-            # 取上游最新 commit 作为同步信息
-            UPSTREAM_SHA=$(cd /tmp/hydra && git rev-parse --short HEAD)
-            echo "upstream_sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "✓ Changes detected (upstream $UPSTREAM_SHA)"
+            echo "✓ Content changed, will commit"
           fi
 
       - name: Commit changes
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.probe.outputs.skip == 'false' && steps.diff.outputs.changed == 'true'
         run: |
-          git commit -m "chore(sync): ui/ synced from upstream HydraLLM@${{ steps.diff.outputs.upstream_sha }}
+          git commit -m "chore(sync): ui/ synced from upstream HydraLLM@${{ steps.probe.outputs.upstream_sha }}
 
           自动同步自 https://github.com/clockclock1/HydraLLM
-          上游 commit: ${{ steps.diff.outputs.upstream_sha }}"
+          上游 commit: ${{ steps.probe.outputs.upstream_sha }}"
 
       - name: Push to main
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.probe.outputs.skip == 'false' && steps.diff.outputs.changed == 'true'
         run: |
           git push origin main
           echo "✓ Pushed to main — Cloudflare Pages Git 集成将自动触发部署"
 
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.probe.outputs.skip }}" = "true" ]; then
+            echo "### ✅ 无需同步 — 上游 HydraLLM HEAD 未变化" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
+            echo "### ✅ 同步完成 — 已推送 main 分支，CF Pages 自动部署中" >> $GITHUB_STEP_SUMMARY
+            echo "上游 commit: \`${{ steps.probe.outputs.upstream_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⏭️ 已克隆上游但内容无变化" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Cleanup
+        if: always()
         run: rm -rf /tmp/hydra
