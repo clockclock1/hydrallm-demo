@@ -1,0 +1,44 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      # 拉取最新代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 安装 Node 18+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      # 安装依赖
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 构建前端
+      - name: Build
+        run: pnpm build
+
+      # 部署到 Cloudflare Pages
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: hydrallm-demo
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
