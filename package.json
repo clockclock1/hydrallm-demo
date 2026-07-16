@@ -6,7 +6,7 @@
   "description": "HydraLLM 项目展示示例站 - Cloudflare Pages 静态站点",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build && cd ui && npm install && npm run build && cp public/sw.js ../dist/ui/sw.js",
+    "build": "vue-tsc --noEmit && vite build && cd ui && npm install && npm run build && cp ../public/sw.js ../dist/sw.js",
     "build:ui": "cd ui && npm install && npm run build",
     "build:all": "npm run build",
     "preview": "vite preview",

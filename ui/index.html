@@ -19,17 +19,13 @@
       // 演示 banner
       (function(){var b=document.getElementById('demo-banner');if(b){b.style.display='flex';document.body.style.paddingTop='36px';}})();
 
-      // 注册 Service Worker（Mock API）
-      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      // 注册 Service Worker（必须放在根路径，用 `/` scope 才能拦截 `/api/*`）
+      if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          var swUrl = '/ui/sw.js';
-          navigator.serviceWorker.register(swUrl, { scope: '/ui/' })
-            .then(function(reg) { console.log('[HydraLLM Demo] SW registered', reg.scope); })
-            .catch(function(err) { console.warn('[HydraLLM Demo] SW failed', err); });
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(function(reg) { console.log('[HydraLLM Demo] SW registered, scope =', reg.scope); })
+            .catch(function(err) { console.warn('[HydraLLM Demo] SW registration failed', err); });
         });
-      } else {
-        // 本地开发时也 Mock API（通过 fetch 拦截）
-        console.log('[HydraLLM Demo] Local dev: API mock via fetch wrapper');
       }
     </script>
     <script type="module" src="/src/main.tsx"></script>
