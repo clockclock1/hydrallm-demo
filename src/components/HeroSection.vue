@@ -69,15 +69,6 @@ import { site, stats } from '../data/sections'
         源码
       </a>
       <a
-        :href="site.upstream.issues"
-        target="_blank"
-        rel="noopener"
-        class="btn-ghost px-5 py-2.5 text-sm"
-      >
-        <span class="i-lucide-message-square h-4 w-4" />
-        反馈问题
-      </a>
-      <a
         href="/ui/"
         target="_blank"
         rel="noopener"
@@ -85,6 +76,13 @@ import { site, stats } from '../data/sections'
       >
         <span class="i-lucide-flask-conical h-4 w-4" />
         体验演示
+      </a>
+      <a
+        href="#/docs"
+        class="btn-ghost px-5 py-2.5 text-sm"
+      >
+        <span class="i-lucide-book-open h-4 w-4" />
+        文档
       </a>
     </div>
 
