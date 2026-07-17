@@ -29,8 +29,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative min-h-screen w-full text-zinc-200">
-    <!-- 背景网格 -->
+  <div class="relative min-h-screen w-full text-zinc-200" :class="route === 'docs' ? 'doc-page-bg' : ''">
+    <!-- 背景网格（首页可见，文档页用 .doc-page-bg 类禁用） -->
     <div class="pointer-events-none absolute inset-0 grid-bg opacity-40" />
     <!-- 顶部背景渐变光晕 -->
     <div class="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[1100px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
