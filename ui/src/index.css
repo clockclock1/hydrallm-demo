@@ -543,6 +543,40 @@ button:active {
   border: 1px solid rgba(100, 116, 139, 0.16) !important;
 }
 
+.uiverse-shell .uiverse-model-chain-usage {
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px rgba(2, 6, 23, 0.18);
+}
+
+.uiverse-shell[data-theme="dark"] .uiverse-model-chain-usage.bg-violet-50 {
+  background-color: rgba(76, 29, 149, 0.62) !important;
+  background-image: linear-gradient(135deg, rgba(124, 58, 237, 0.34), rgba(34, 211, 238, 0.12)) !important;
+  border-color: rgba(167, 139, 250, 0.28) !important;
+  color: #d8b4fe !important;
+}
+
+.uiverse-shell[data-theme="dark"] .uiverse-model-chain-usage.bg-slate-100 {
+  background-color: rgba(15, 23, 42, 0.76) !important;
+  background-image: linear-gradient(135deg, rgba(30, 41, 59, 0.82), rgba(15, 23, 42, 0.72)) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: #cbd5e1 !important;
+}
+
+.uiverse-shell[data-theme="light"] .uiverse-model-chain-usage.bg-violet-50 {
+  background-color: rgba(245, 243, 255, 0.94) !important;
+  background-image: linear-gradient(135deg, rgba(237, 233, 254, 0.98), rgba(224, 242, 254, 0.72)) !important;
+  border-color: rgba(139, 92, 246, 0.22) !important;
+  color: #6d28d9 !important;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.uiverse-shell[data-theme="light"] .uiverse-model-chain-usage.bg-slate-100 {
+  background-color: rgba(248, 250, 252, 0.94) !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.72)) !important;
+  border-color: rgba(100, 116, 139, 0.16) !important;
+  color: #64748b !important;
+}
+
 .uiverse-shell .uiverse-code-sample {
   border: 1px solid rgba(34, 211, 238, 0.18) !important;
   background-color: rgba(2, 6, 23, 0.94) !important;
@@ -641,6 +675,66 @@ button:active {
     0 22px 52px rgba(0, 0, 0, 0.45),
     0 0 26px rgba(34, 211, 238, 0.13),
     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.uiverse-shell .dashboard-link-card {
+  cursor: pointer !important;
+}
+
+.uiverse-shell .dashboard-link-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.uiverse-shell .dashboard-link-card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 82% 24%, rgba(34, 211, 238, 0.24), transparent 28%),
+    linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(167, 139, 250, 0.08));
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: scale(0.985);
+}
+
+.uiverse-shell .dashboard-link-card:hover,
+.uiverse-shell .dashboard-link-card:focus-visible {
+  border-color: rgba(34, 211, 238, 0.82) !important;
+  box-shadow:
+    0 24px 58px rgba(2, 6, 23, 0.46),
+    0 0 0 1px rgba(34, 211, 238, 0.22),
+    0 0 30px rgba(34, 211, 238, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.uiverse-shell .dashboard-link-card:hover::after,
+.uiverse-shell .dashboard-link-card:focus-visible::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.uiverse-shell .dashboard-link-card:hover p:first-child,
+.uiverse-shell .dashboard-link-card:focus-visible p:first-child {
+  color: #67e8f9 !important;
+}
+
+.uiverse-shell[data-theme="light"] .dashboard-link-card:hover,
+.uiverse-shell[data-theme="light"] .dashboard-link-card:focus-visible {
+  border-color: rgba(14, 165, 233, 0.68) !important;
+  box-shadow:
+    0 22px 48px rgba(14, 116, 144, 0.18),
+    0 0 0 1px rgba(14, 165, 233, 0.18),
+    0 0 28px rgba(14, 165, 233, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+.uiverse-shell[data-theme="light"] .dashboard-link-card:hover p:first-child,
+.uiverse-shell[data-theme="light"] .dashboard-link-card:focus-visible p:first-child {
+  color: #0369a1 !important;
 }
 
 .uiverse-shell button:not(.loading-comp-react):not([class*="absolute"]),

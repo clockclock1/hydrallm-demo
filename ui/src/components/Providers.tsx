@@ -124,7 +124,7 @@ function FetchModelsModal({
   onClose: () => void;
   onModelsSelected: (models: string[]) => void;
 }) {
-  const { fetchProviderModels } = useStore();
+  const { state, fetchProviderModels } = useStore();
   const [loading, setLoading] = useState(false);
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set(provider.models));
@@ -236,6 +236,12 @@ function FetchModelsModal({
                 {filteredModels.map(model => {
                   const isSelected = selectedModels.has(model);
                   const isChat = !model.includes('embed') && !model.includes('whisper') && !model.includes('tts') && !model.includes('dall');
+                  const usedChains = state.chains.filter(chain =>
+                    chain.models.some(item => item.providerId === provider.id && item.modelName === model)
+                  );
+                  const usageTitle = usedChains.length
+                    ? usedChains.map(chain => chain.name).join('、')
+                    : '当前故障转移链未使用该模型';
                   return (
                     <button
                       key={model}
@@ -258,12 +264,27 @@ function FetchModelsModal({
                           {model}
                         </span>
                       </div>
-                      <span className={cn(
-                        'uiverse-model-kind text-[10px] px-2 py-0.5 rounded-full',
-                        isChat ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
-                      )}>
-                        {isChat ? 'Chat' : 'Other'}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {isSelected && (
+                          <span
+                            title={usageTitle}
+                            className={cn(
+                              'uiverse-model-chain-usage max-w-[150px] truncate rounded-full px-2 py-0.5 text-[10px] font-medium',
+                              usedChains.length
+                                ? 'bg-violet-50 text-violet-600'
+                                : 'bg-slate-100 text-slate-500'
+                            )}
+                          >
+                            {usedChains.length ? `已用于 ${usedChains.length} 链` : '未用于转移链'}
+                          </span>
+                        )}
+                        <span className={cn(
+                          'uiverse-model-kind text-[10px] px-2 py-0.5 rounded-full',
+                          isChat ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                        )}>
+                          {isChat ? 'Chat' : 'Other'}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}

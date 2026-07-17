@@ -34,7 +34,7 @@ function StatCard({ icon, label, value, sub, color, delay = 0, targetPage, onNav
     <button
       type="button"
       onClick={() => onNavigate(targetPage)}
-      className="motion-card group w-full rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500/40"
+      className="dashboard-link-card motion-card group relative w-full cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500/40"
       style={{ animationDelay: `${delay}ms` }}
       aria-label={`${label} - 跳转`}
     >
