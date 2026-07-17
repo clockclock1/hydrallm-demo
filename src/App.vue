@@ -36,31 +36,39 @@ onUnmounted(() => {
     <div class="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[1100px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
 
     <div class="relative mx-auto flex w-full max-w-[1160px] flex-col px-6 pb-20 pt-6">
-      <!-- 顶部导航栏 -->
+      <!-- 顶部导航栏（极简，无外边框） -->
       <nav class="mb-12 flex items-center justify-between">
         <a href="#/" class="flex items-center gap-2 text-sm font-semibold text-zinc-100 hover:text-brand-400 transition-colors">
           <span class="i-lucide-arrow-left h-4 w-4" v-if="route === 'docs'" />
           <span v-else class="text-gradient text-lg font-extrabold tracking-tight">HydraLLM</span>
         </a>
-        <div class="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
+        <div class="flex items-center gap-6 text-sm">
           <button
             @click="navigate('home')"
             :class="[
-              'rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200',
-              route === 'home'
-                ? 'bg-brand-500/20 text-brand-400'
-                : 'text-zinc-400 hover:text-zinc-200'
+              'relative py-1 transition-colors duration-200',
+              route === 'home' ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
             ]"
-          >首页</button>
+          >
+            首页
+            <span
+              v-if="route === 'home'"
+              class="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-brand-400"
+            />
+          </button>
           <button
             @click="navigate('docs')"
             :class="[
-              'rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200',
-              route === 'docs'
-                ? 'bg-brand-500/20 text-brand-400'
-                : 'text-zinc-400 hover:text-zinc-200'
+              'relative py-1 transition-colors duration-200',
+              route === 'docs' ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
             ]"
-          >文档</button>
+          >
+            文档
+            <span
+              v-if="route === 'docs'"
+              class="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-brand-400"
+            />
+          </button>
         </div>
       </nav>
 

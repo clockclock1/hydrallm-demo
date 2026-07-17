@@ -40,21 +40,28 @@ function scrollTo(id: string) {
 
 <template>
   <div class="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
-    <!-- 左侧目录 -->
+    <!-- 左侧目录（极简竖直线样式） -->
     <aside class="hidden lg:block">
-      <nav class="sticky top-6 flex flex-col gap-1">
+      <nav class="sticky top-6 flex flex-col gap-0.5 border-l border-white/8 pl-4">
         <button
           v-for="s in sections"
           :key="s.id"
           @click="scrollTo(s.id)"
           :class="[
-            'flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-all duration-150',
+            'group relative flex items-center gap-2 py-1.5 text-left text-sm transition-colors duration-150',
             activeId === s.id
-              ? 'bg-brand-500/15 text-brand-400 font-medium'
-              : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200',
+              ? 'text-zinc-100'
+              : 'text-zinc-500 hover:text-zinc-300',
           ]"
         >
-          <span :class="s.icon" class="h-4 w-4 flex-shrink-0" />
+          <!-- 左侧色条：激活时填充，未激活时滑入 -->
+          <span
+            :class="[
+              'absolute -left-4 top-1/2 h-5 -translate-y-1/2 rounded-r bg-brand-400 transition-all duration-200',
+              activeId === s.id ? 'w-0.5 opacity-100' : 'w-0 opacity-0 group-hover:w-0.5 group-hover:opacity-60'
+            ]"
+          />
+          <span :class="s.icon" class="h-3.5 w-3.5 flex-shrink-0 opacity-60" />
           {{ s.label }}
         </button>
       </nav>
