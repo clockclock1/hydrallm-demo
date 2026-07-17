@@ -132,3 +132,54 @@ export const endpoints: Endpoint[] = [
     description: '读取当前配置（需管理员令牌）',
   },
 ]
+
+/* ------------------------------------------------------------------ */
+/* 文档站导航与内容元数据                                                */
+/* ------------------------------------------------------------------ */
+
+export interface DocSection {
+  /** 锚点 id，须与 DocsPage.vue 中 <section :id> 一致 */
+  id: string
+  /** 侧边栏显示文本 */
+  label: string
+  /** 图标（lucide 图标类名，前缀 i-lucide-） */
+  icon: string
+}
+
+/** 文档侧边栏章节顺序 —— 同时被 DocsPage 用于渲染目录 */
+export const docSections: DocSection[] = [
+  { id: 'intro',         label: '简介',           icon: 'i-lucide-info' },
+  { id: 'features',      label: '核心特性',        icon: 'i-lucide-sparkles' },
+  { id: 'quickstart',    label: '快速开始',        icon: 'i-lucide-rocket' },
+  { id: 'config',        label: '配置说明',        icon: 'i-lucide-settings' },
+  { id: 'api',           label: 'API 参考',        icon: 'i-lucide-code' },
+  { id: 'failover',      label: '故障转移策略',    icon: 'i-lucide-shuffle' },
+  { id: 'deploy',        label: '部署到 Cloudflare', icon: 'i-lucide-cloud' },
+  { id: 'sync',          label: '自动同步 Workflow', icon: 'i-lucide-refresh-cw' },
+  { id: 'troubleshoot',  label: '常见问题',        icon: 'i-lucide-help-circle' },
+]
+
+export interface DocNavLink {
+  /** 锚点 id（不带 #） */
+  id: string
+  /** 显示标题 */
+  title: string
+  /** 段落简介 */
+  desc: string
+}
+
+export interface DocMeta {
+  /** 上次更新日期，YYYY-MM-DD */
+  lastUpdated: string
+  /** GitHub 源文件链接（"Edit on GitHub"） */
+  editLink: string
+  /** 页脚翻页器 */
+  prev?: DocNavLink
+  next?: DocNavLink
+}
+
+/** 文档页元信息 —— 由 DocsPage 在页脚/页头展示 */
+export const docMeta: DocMeta = {
+  lastUpdated: '2026-07-17',
+  editLink: `${site.upstream.demoRepo}/blob/main/src/pages/DocsPage.vue`,
+}
