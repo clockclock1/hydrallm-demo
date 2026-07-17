@@ -138,25 +138,48 @@ export const endpoints: Endpoint[] = [
 /* ------------------------------------------------------------------ */
 
 export interface DocSection {
-  /** 锚点 id，须与 DocsPage.vue 中 <section :id> 一致 */
+  /** 锚点 id（兼作 hash 路由片段，例如 'quickstart' → #/docs/quickstart） */
   id: string
   /** 侧边栏显示文本 */
   label: string
   /** 图标（lucide 图标类名，前缀 i-lucide-） */
   icon: string
+  /** 所属分组 key，对应 docGroups[].key */
+  group: string
+  /** 简短副标题，用于 footer pager 的提示文案 */
+  desc?: string
 }
 
-/** 文档侧边栏章节顺序 —— 同时被 DocsPage 用于渲染目录 */
+/** 文档侧边栏顶层分组（参照 VitePress sidebar 的 level-0 collapsible section） */
+export interface DocGroup {
+  key: string
+  /** 分组显示文本 */
+  label: string
+  /** 默认是否折叠 */
+  collapsed?: boolean
+}
+
+/** 文档侧边栏分组顺序与命名 */
+export const docGroups: DocGroup[] = [
+  { key: 'guide',  label: '上手使用' },
+  { key: 'deploy', label: '部署与同步' },
+  { key: 'help',   label: '帮助' },
+]
+
+/** 文档侧边栏章节顺序（决定侧边栏渲染顺序与 pager prev/next 相邻关系） */
 export const docSections: DocSection[] = [
-  { id: 'intro',         label: '简介',           icon: 'i-lucide-info' },
-  { id: 'features',      label: '核心特性',        icon: 'i-lucide-sparkles' },
-  { id: 'quickstart',    label: '快速开始',        icon: 'i-lucide-rocket' },
-  { id: 'config',        label: '配置说明',        icon: 'i-lucide-settings' },
-  { id: 'api',           label: 'API 参考',        icon: 'i-lucide-code' },
-  { id: 'failover',      label: '故障转移策略',    icon: 'i-lucide-shuffle' },
-  { id: 'deploy',        label: '部署到 Cloudflare', icon: 'i-lucide-cloud' },
-  { id: 'sync',          label: '自动同步 Workflow', icon: 'i-lucide-refresh-cw' },
-  { id: 'troubleshoot',  label: '常见问题',        icon: 'i-lucide-help-circle' },
+  // 上手使用
+  { id: 'intro',         label: '简介',              group: 'guide',  icon: 'i-lucide-info',         desc: '什么是 HydraLLM' },
+  { id: 'features',      label: '核心特性',           group: 'guide',  icon: 'i-lucide-sparkles' },
+  { id: 'quickstart',    label: '快速开始',           group: 'guide',  icon: 'i-lucide-rocket' },
+  { id: 'config',        label: '配置说明',           group: 'guide',  icon: 'i-lucide-settings' },
+  { id: 'api',           label: 'API 参考',           group: 'guide',  icon: 'i-lucide-code' },
+  { id: 'failover',      label: '故障转移策略',        group: 'guide',  icon: 'i-lucide-shuffle' },
+  // 部署与同步
+  { id: 'deploy',        label: '部署到 Cloudflare',  group: 'deploy', icon: 'i-lucide-cloud' },
+  { id: 'sync',          label: '自动同步 Workflow',  group: 'deploy', icon: 'i-lucide-refresh-cw' },
+  // 帮助
+  { id: 'troubleshoot',  label: '常见问题',           group: 'help',   icon: 'i-lucide-help-circle' },
 ]
 
 export interface DocNavLink {
@@ -173,13 +196,32 @@ export interface DocMeta {
   lastUpdated: string
   /** GitHub 源文件链接（"Edit on GitHub"） */
   editLink: string
-  /** 页脚翻页器 */
-  prev?: DocNavLink
-  next?: DocNavLink
 }
 
-/** 文档页元信息 —— 由 DocsPage 在页脚/页头展示 */
+/** 文档页元信息 —— 由 DocsLayout 在页脚/页头展示 */
 export const docMeta: DocMeta = {
   lastUpdated: '2026-07-17',
-  editLink: `${site.upstream.demoRepo}/blob/main/src/pages/DocsPage.vue`,
+  editLink: `${site.upstream.demoRepo}/blob/main/src/pages/docs/`,
 }
+
+/**
+ * 给定章节 id，按 docSections 数组顺序返回相邻的 prev / next 链接。
+ * 用于 DocsLayout 渲染底部翻页器。第一个章节没有 prev，最后一个没有 next。
+ */
+export function getDocNeighbors(id: string): { prev?: DocNavLink; next?: DocNavLink } {
+  const idx = docSections.findIndex((s) => s.id === id)
+  if (idx === -1) return {}
+  const prev = idx > 0 ? docSections[idx - 1] : undefined
+  const next = idx < docSections.length - 1 ? docSections[idx + 1] : undefined
+  return {
+    prev: prev
+      ? { id: prev.id, title: prev.label, desc: prev.desc ?? '上一页' }
+      : undefined,
+    next: next
+      ? { id: next.id, title: next.label, desc: next.desc ?? '下一页' }
+      : undefined,
+  }
+}
+
+/** 默认 doc id —— #/docs 未带 id 时 fallback 用 */
+export const defaultDocId = 'intro'
