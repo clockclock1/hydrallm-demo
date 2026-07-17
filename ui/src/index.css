@@ -1239,6 +1239,43 @@ button:active {
   box-shadow: inset 3px 0 0 var(--uv-cyan);
 }
 
+.uiverse-shell .dashboard-provider-list > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(125, 211, 252, 0.1) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .dashboard-provider-list > :not([hidden]) ~ :not([hidden]) {
+  border-top-color: rgba(125, 211, 252, 0.12) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .dashboard-provider-row {
+  border-color: rgba(125, 211, 252, 0.12) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .dashboard-provider-row:hover {
+  background:
+    linear-gradient(90deg, rgba(34, 211, 238, 0.1), rgba(167, 139, 250, 0.08)) !important;
+  border-color: rgba(125, 211, 252, 0.16) !important;
+}
+
+.uiverse-shell .model-test-results-card {
+  max-width: 100%;
+}
+
+.uiverse-shell .model-test-results-scroll {
+  scrollbar-gutter: stable;
+}
+
+.uiverse-shell .model-test-results-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.uiverse-shell .model-test-results-table th,
+.uiverse-shell .model-test-results-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .uiverse-shell code,
 .uiverse-shell pre {
   border-color: rgba(52, 211, 153, 0.18) !important;

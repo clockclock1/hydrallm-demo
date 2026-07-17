@@ -131,9 +131,9 @@ export default function Dashboard() {
             <Activity size={18} className="text-slate-600" />
             <h3 className="font-semibold text-slate-800">提供商状态</h3>
           </div>
-          <div className="max-h-[430px] divide-y divide-slate-50 overflow-auto">
+          <div className="dashboard-provider-list max-h-[430px] divide-y divide-slate-50 overflow-auto">
             {state.providers.map((provider, index) => (
-              <div key={provider.id} className="table-row-motion flex flex-col items-start gap-3 px-5 py-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4" style={{ animationDelay: `${index * 25}ms` }}>
+              <div key={provider.id} className="dashboard-provider-row table-row-motion flex flex-col items-start gap-3 px-5 py-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4" style={{ animationDelay: `${index * 25}ms` }}>
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={cn(
                     'h-2.5 w-2.5 shrink-0 rounded-full',

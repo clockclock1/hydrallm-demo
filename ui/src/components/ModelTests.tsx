@@ -63,11 +63,11 @@ function CapabilityCell({ result }: { result?: ModelCapabilityResult }) {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="min-w-0 space-y-1">
       <StatusPill status={result.status} />
-      <p className="line-clamp-2 text-xs text-slate-500">{result.detail}</p>
+      <p className="line-clamp-2 break-words text-xs text-slate-500">{result.detail}</p>
       {result.latencyMs !== undefined && (
-        <p className="font-mono text-[11px] text-slate-400">
+        <p className="break-words font-mono text-[11px] text-slate-400">
           {result.latencyMs}ms
           {result.usage?.totalTokens ? ` · ${result.usage.totalTokens} tokens` : ''}
         </p>
@@ -262,8 +262,8 @@ export default function ModelTests() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
-        <section className="space-y-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <section className="min-w-0 space-y-4">
           <div className="motion-card rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">测试项目</h3>
@@ -361,7 +361,7 @@ export default function ModelTests() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="motion-card rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-xs text-emerald-700">通过</p>
@@ -388,7 +388,7 @@ export default function ModelTests() {
             </div>
           )}
 
-          <div className="motion-card overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ animationDelay: '90ms' }}>
+          <div className="model-test-results-card motion-card min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ animationDelay: '90ms' }}>
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <h3 className="font-semibold text-slate-800">测试结果</h3>
@@ -402,15 +402,15 @@ export default function ModelTests() {
               )}
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
+            <div className="model-test-results-scroll max-w-full overflow-x-auto">
+              <table className="model-test-results-table w-full min-w-[760px] table-fixed text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-5 py-3 font-medium">模型</th>
+                    <th className="w-[230px] px-5 py-3 font-medium">模型</th>
                     {(Object.keys(capabilityMeta) as ModelCapability[]).map(capability => (
                       <th key={capability} className="px-4 py-3 font-medium">{capabilityMeta[capability].label}</th>
                     ))}
-                    <th className="px-4 py-3 font-medium">耗时</th>
+                    <th className="w-[92px] px-4 py-3 font-medium">耗时</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -419,12 +419,12 @@ export default function ModelTests() {
                     return (
                       <tr key={`${result.providerId}-${result.modelName}`} className="table-row-motion align-top">
                         <td className="px-5 py-4">
-                          <p className="font-mono font-medium text-slate-800">{result.modelName}</p>
-                          <p className="mt-1 text-xs text-slate-500">{result.providerName}</p>
-                          <p className="mt-1 font-mono text-[11px] text-slate-400">{new Date(result.startedAt).toLocaleString()}</p>
+                          <p className="break-all font-mono font-medium text-slate-800">{result.modelName}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500">{result.providerName}</p>
+                          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{new Date(result.startedAt).toLocaleString()}</p>
                         </td>
                         {(Object.keys(capabilityMeta) as ModelCapability[]).map(capability => (
-                          <td key={capability} className="max-w-[220px] px-4 py-4">
+                          <td key={capability} className="px-4 py-4">
                             <CapabilityCell result={byCapability.get(capability)} />
                           </td>
                         ))}
