@@ -1401,6 +1401,38 @@ button:active {
   border-color: rgba(125, 211, 252, 0.11) !important;
 }
 
+.uiverse-shell[data-theme="dark"] .proxy-endpoint-list > :not([hidden]) ~ :not([hidden]) {
+  border-top-color: rgba(125, 211, 252, 0.055) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .proxy-endpoint-card,
+.uiverse-shell[data-theme="dark"] .proxy-endpoint-card-header,
+.uiverse-shell[data-theme="dark"] .proxy-endpoint-row {
+  border-color: rgba(125, 211, 252, 0.075) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .proxy-endpoint-row-selected {
+  background-color: rgba(8, 47, 73, 0.32) !important;
+  background-image: linear-gradient(90deg, rgba(34, 211, 238, 0.08), rgba(167, 139, 250, 0.055)) !important;
+  box-shadow: inset 3px 0 0 rgba(34, 211, 238, 0.38) !important;
+}
+
+.uiverse-shell[data-theme="light"] .proxy-endpoint-list > :not([hidden]) ~ :not([hidden]) {
+  border-top-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.uiverse-shell[data-theme="light"] .proxy-endpoint-card,
+.uiverse-shell[data-theme="light"] .proxy-endpoint-card-header,
+.uiverse-shell[data-theme="light"] .proxy-endpoint-row {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.uiverse-shell[data-theme="light"] .proxy-endpoint-row-selected {
+  background-color: rgba(224, 242, 254, 0.5) !important;
+  background-image: linear-gradient(90deg, rgba(224, 242, 254, 0.62), rgba(248, 250, 252, 0.78)) !important;
+  box-shadow: inset 3px 0 0 rgba(14, 116, 144, 0.36) !important;
+}
+
 .uiverse-shell ::selection,
 .uiverse-login ::selection {
   background: rgba(34, 211, 238, 0.32);

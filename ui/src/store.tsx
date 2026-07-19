@@ -92,6 +92,7 @@ interface State {
   configLoaded: boolean;
   saveStatus: 'idle' | 'loading' | 'saving' | 'saved' | 'error';
   saveError: string;
+  hasUnsavedChanges: boolean;
   backendConfig: BackendConfig | null;
   backendStats: BackendStats | null;
 }
@@ -178,6 +179,7 @@ const initialState: State = {
   configLoaded: false,
   saveStatus: 'idle',
   saveError: '',
+  hasUnsavedChanges: false,
   backendConfig: null,
   backendStats: null,
 };
@@ -211,6 +213,16 @@ function normalizeChain(chain: FailoverChain): FailoverChain {
   };
 }
 
+function markConfigChanged(state: State, updates: Partial<State>): State {
+  return {
+    ...state,
+    ...updates,
+    hasUnsavedChanges: true,
+    saveStatus: state.saveStatus === 'loading' || state.saveStatus === 'saving' ? state.saveStatus : 'idle',
+    saveError: '',
+  };
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_PAGE':
@@ -238,6 +250,7 @@ function reducer(state: State, action: Action): State {
         activeThreads: [],
         saveStatus: 'idle',
         saveError: '',
+        hasUnsavedChanges: false,
       };
     case 'SET_AUTH_CHECKED':
       return { ...state, authChecked: action.checked };
@@ -257,25 +270,25 @@ function reducer(state: State, action: Action): State {
         configLoaded: true,
         saveStatus: 'idle',
         saveError: '',
+        hasUnsavedChanges: false,
       };
     }
     case 'LOAD_BACKEND_STATS':
       return applyStatsToState(state, action.stats);
     case 'ADD_PROVIDER':
-      return { ...state, providers: [...state.providers, action.provider] };
+      return markConfigChanged(state, { providers: [...state.providers, action.provider] });
     case 'UPDATE_PROVIDER':
-      return { ...state, providers: state.providers.map(p => p.id === action.provider.id ? action.provider : p) };
+      return markConfigChanged(state, { providers: state.providers.map(p => p.id === action.provider.id ? action.provider : p) });
     case 'DELETE_PROVIDER':
-      return {
-        ...state,
+      return markConfigChanged(state, {
         providers: state.providers.filter(p => p.id !== action.id),
         chains: state.chains.map(chain => ({
           ...chain,
           models: normalizeChainModels(chain.models.filter(model => model.providerId !== action.id)),
         })),
-      };
+      });
     case 'SET_PROVIDER_MODELS':
-      return { ...state, providers: state.providers.map(p => p.id === action.id ? { ...p, models: action.models } : p) };
+      return markConfigChanged(state, { providers: state.providers.map(p => p.id === action.id ? { ...p, models: action.models } : p) });
     case 'SET_PROVIDER_STATUS':
       return { ...state, providers: state.providers.map(p => p.id === action.id ? { ...p, status: action.status, latency: action.latency, lastCheck: Date.now() } : p) };
     case 'SET_PROVIDER_HEALTHS':
@@ -296,11 +309,11 @@ function reducer(state: State, action: Action): State {
         }),
       };
     case 'ADD_CHAIN':
-      return { ...state, chains: [...state.chains, normalizeChain(action.chain)] };
+      return markConfigChanged(state, { chains: [...state.chains, normalizeChain(action.chain)] });
     case 'UPDATE_CHAIN':
-      return { ...state, chains: state.chains.map(c => c.id === action.chain.id ? normalizeChain(action.chain) : c) };
+      return markConfigChanged(state, { chains: state.chains.map(c => c.id === action.chain.id ? normalizeChain(action.chain) : c) });
     case 'DELETE_CHAIN':
-      return { ...state, chains: state.chains.filter(c => c.id !== action.id) };
+      return markConfigChanged(state, { chains: state.chains.filter(c => c.id !== action.id) });
     case 'ADD_LOG':
       return { ...state, logs: [action.log, ...state.logs].slice(0, 200) };
     default:

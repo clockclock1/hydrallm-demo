@@ -44,6 +44,7 @@ export default function Sidebar({
   const collapsed = state.sidebarCollapsed;
   const busy = state.saveStatus === 'loading' || state.saveStatus === 'saving';
   const isCollapsed = !mobile && collapsed;
+  const hasUnsavedChanges = state.hasUnsavedChanges;
 
   return (
     <aside
@@ -105,9 +106,14 @@ export default function Sidebar({
             <button
               onClick={() => saveConfig().catch(() => undefined)}
               disabled={busy}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-2 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-50"
+              className={cn(
+                'flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-white disabled:opacity-50',
+                hasUnsavedChanges
+                  ? 'bg-amber-500 hover:bg-amber-400 shadow-sm shadow-amber-500/20'
+                  : 'bg-blue-600 hover:bg-blue-500'
+              )}
             >
-              <AnimatedGlyph variant="save" />
+              <AnimatedGlyph variant="save" className={hasUnsavedChanges ? 'live-glyph-active' : ''} />
               保存
             </button>
             <button
@@ -122,13 +128,15 @@ export default function Sidebar({
           <p className={cn(
             'min-h-4 text-[10px]',
             state.saveStatus === 'error' ? 'text-red-300' :
+            hasUnsavedChanges ? 'text-amber-300' :
             state.saveStatus === 'saved' ? 'text-emerald-300' : 'text-slate-500'
           )}>
             {state.saveStatus === 'loading' && '正在加载配置...'}
             {state.saveStatus === 'saving' && '正在保存配置...'}
-            {state.saveStatus === 'saved' && '配置已保存'}
+            {state.saveStatus === 'saved' && !hasUnsavedChanges && '配置已保存'}
             {state.saveStatus === 'error' && (state.saveError || '操作失败')}
-            {state.saveStatus === 'idle' && (state.configLoaded ? '已登录并连接后端' : '等待加载配置')}
+            {hasUnsavedChanges && state.saveStatus !== 'loading' && state.saveStatus !== 'saving' && state.saveStatus !== 'error' && '配置已修改，请点击保存'}
+            {state.saveStatus === 'idle' && !hasUnsavedChanges && (state.configLoaded ? '已登录并连接后端' : '等待加载配置')}
           </p>
         </div>
       )}

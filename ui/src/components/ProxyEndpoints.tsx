@@ -73,20 +73,20 @@ export default function ProxyEndpoints() {
       </div>
 
       {/* Endpoint List */}
-      <div className="motion-card bg-white rounded-xl border border-slate-200 overflow-hidden" style={{ animationDelay: '45ms' }}>
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+      <div className="proxy-endpoint-card motion-card bg-white rounded-xl border border-slate-200 overflow-hidden" style={{ animationDelay: '45ms' }}>
+        <div className="proxy-endpoint-card-header px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Link2 size={18} className="text-slate-600" />
           <h3 className="font-semibold text-slate-800">可用端点</h3>
           <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full ml-auto">{enabledChains.length} 个活跃</span>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="proxy-endpoint-list divide-y divide-slate-50">
           {state.chains.map((chain, index) => (
             <div
               key={chain.id}
               className={cn(
-                'table-row-motion px-5 py-4 transition-colors cursor-pointer',
-                selectedChain?.id === chain.id ? 'bg-blue-50/30' : 'hover:bg-slate-50'
+                'proxy-endpoint-row table-row-motion px-5 py-4 transition-colors cursor-pointer',
+                selectedChain?.id === chain.id ? 'proxy-endpoint-row-selected bg-blue-50/30' : 'hover:bg-slate-50'
               )}
               style={{ animationDelay: `${Math.min(index, 14) * 22}ms` }}
               onClick={() => setSelectedChainId(chain.id)}

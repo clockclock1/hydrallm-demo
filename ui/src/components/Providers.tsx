@@ -21,6 +21,10 @@ import type { Provider } from '../types';
 import { cn } from '../utils/cn';
 import LoadingOverlay, { LoadingSpinner } from './Loading';
 
+function uniqueStrings(items: string[]) {
+  return [...new Set(items.map(item => item.trim()).filter(Boolean))];
+}
+
 // Modal for adding/editing providers
 function ProviderModal({
   provider,
@@ -131,14 +135,21 @@ function FetchModelsModal({
   const [error, setError] = useState('');
   const [customUrl, setCustomUrl] = useState(provider.baseUrl + '/models');
   const [searchTerm, setSearchTerm] = useState('');
+  const [customModelName, setCustomModelName] = useState('');
+  const [customModels, setCustomModels] = useState<string[]>([]);
+
+  const availableModels = uniqueStrings([...provider.models, ...fetchedModels, ...customModels]);
 
   const fetchModels = async () => {
     setLoading(true);
     setError('');
     try {
-      const models = await fetchProviderModels(customUrl, provider.apiKey);
+      const models = uniqueStrings(await fetchProviderModels(customUrl, provider.apiKey));
       setFetchedModels(models);
-      setSelectedModels(new Set(models.filter(model => selectedModels.has(model))));
+      const nextAvailableModels = uniqueStrings([...provider.models, ...models, ...customModels]);
+      setSelectedModels(current => new Set(
+        [...current].filter(model => nextAvailableModels.includes(model))
+      ));
     } catch (err) {
       setError(err instanceof Error ? err.message : '模型拉取失败');
     } finally {
@@ -156,9 +167,18 @@ function FetchModelsModal({
   const selectAll = () => setSelectedModels(new Set(filteredModels));
   const deselectAll = () => setSelectedModels(new Set());
 
-  const filteredModels = fetchedModels.filter(m =>
+  const filteredModels = availableModels.filter(m =>
     m.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const addCustomModel = () => {
+    const model = customModelName.trim();
+    if (!model) return;
+    setCustomModels(current => uniqueStrings([...current, model]));
+    setSelectedModels(current => new Set([...current, model]));
+    setCustomModelName('');
+    setError('');
+  };
 
   return (
     <>
@@ -200,6 +220,33 @@ function FetchModelsModal({
             </div>
           </div>
 
+          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <label className="mb-2 block text-sm font-medium text-slate-700">添加自定义模型</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={customModelName}
+                onChange={e => setCustomModelName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomModel();
+                  }
+                }}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-mono text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                placeholder="例如：gpt-4.1-mini"
+              />
+              <button
+                type="button"
+                onClick={addCustomModel}
+                disabled={!customModelName.trim()}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus size={16} />
+                添加
+              </button>
+            </div>
+          </div>
+
           {error && (
             <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-2 rounded-lg text-sm">
               <AlertCircle size={16} />
@@ -208,11 +255,11 @@ function FetchModelsModal({
           )}
 
           {/* Model List */}
-          {fetchedModels.length > 0 && (
+          {availableModels.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-slate-700">
-                  可用模型 ({fetchedModels.length})
+                  可用模型 ({availableModels.length})
                 </label>
                 <div className="flex items-center gap-2">
                   <button onClick={selectAll} className="text-xs text-blue-600 hover:text-blue-700">全选</button>
@@ -236,6 +283,7 @@ function FetchModelsModal({
                 {filteredModels.map(model => {
                   const isSelected = selectedModels.has(model);
                   const isChat = !model.includes('embed') && !model.includes('whisper') && !model.includes('tts') && !model.includes('dall');
+                  const isCustom = customModels.includes(model);
                   const usedChains = state.chains.filter(chain =>
                     chain.models.some(item => item.providerId === provider.id && item.modelName === model)
                   );
@@ -265,6 +313,11 @@ function FetchModelsModal({
                         </span>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
+                        {isCustom && (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                            自定义
+                          </span>
+                        )}
                         {isSelected && (
                           <span
                             title={usageTitle}
@@ -295,6 +348,12 @@ function FetchModelsModal({
               </p>
             </div>
           )}
+          {availableModels.length === 0 && (
+            <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center">
+              <p className="text-sm text-slate-500">暂无可选模型</p>
+              <p className="mt-1 text-xs text-slate-400">可以先拉取远端模型，或添加一个自定义模型。</p>
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 flex justify-end gap-3">
@@ -303,7 +362,7 @@ function FetchModelsModal({
           </button>
           <button
             onClick={() => {
-              onModelsSelected(Array.from(selectedModels));
+              onModelsSelected(uniqueStrings(Array.from(selectedModels)));
               onClose();
             }}
             disabled={selectedModels.size === 0}
