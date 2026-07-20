@@ -8,7 +8,7 @@ const configFields = [
   { f: 'failoverStatusCodes', t: 'number[]', d: '触发故障转移的状态码（默认含 429、5xx）' },
   { f: 'requestTimeoutMs', t: 'number', d: '请求超时（毫秒），默认 120000' },
   { f: 'circuitBreaker', t: 'object', d: '熔断器配置（阈值、冷却时间等）' },
-  { f: 'modelSource', t: 'object', d: '远程模型来源配置' },
+  { f: 'modelSource', t: 'object', d: '远程模型来源配置（可从第三方 URL 自动拉取模型列表）' },
   { f: 'models', t: 'array', d: '故障转移链配置（核心）' },
   { f: 'providers', t: 'array', d: '上游供应商配置（baseUrl + apiKey）' },
 ]
@@ -78,6 +78,29 @@ const configFields = [
       <code>failureThreshold</code>：连续失败多少次后触发熔断；
       <code>cooldownMinutes</code>：冷却时间（分钟）；
       <code>immediateCooldownStatusCodes</code>：收到这些状态码时立即熔断（如 429）。
+    </DocContainer>
+
+    <h2>远程模型来源（modelSource）<a class="header-anchor" href="#model-source" aria-label="Permalink"></a></h2>
+    <p>
+      <code>modelSource</code> 可配置一个第三方 URL，HydraLLM 会自动从该 URL 拉取模型列表，
+      支持通过 <code>include</code> / <code>exclude</code> 正则过滤，并可在模型名前后添加 <code>publicPrefix</code> / <code>publicSuffix</code>。
+    </p>
+    <CodeBlock lang="json">{
+  "modelSource": {
+    "enabled": true,
+    "url": "https://api.openai.com/v1/models",
+    "apiKey": "sk-your-key",
+    "refreshSeconds": 300,
+    "include": "^(gpt|o3).*$",
+    "exclude": "^(gpt-3|gpt-4).*$",
+    "publicPrefix": "",
+    "publicSuffix": "-public",
+    "targets": []
+  }
+}</CodeBlock>
+    <DocContainer type="tip">
+      <code>targets</code> 数组用于指定特定的 baseUrl/apiKey 组合来拉取模型列表，
+      如果为空则使用 <code>url</code> 和 <code>apiKey</code> 直接请求。
     </DocContainer>
   </div>
 </template>

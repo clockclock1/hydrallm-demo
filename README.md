@@ -19,11 +19,11 @@
 
 本仓库的 `ui/` 目录会自动与上游 HydraLLM 项目保持同步：
 
-- GitHub Actions **每 30 分钟**检查上游 HydraLLM 是否有新提交
+- GitHub Actions **每小时整点**（UTC）检查上游 HydraLLM 是否有新提交
 - 如果 `ui/src/` 有更新，自动 commit 到 `main` 分支
 - `main` 分支更新后，Cloudflare Pages 的 Git 集成自动触发构建部署
 
-> 同步 workflow 在 `.github/workflows/sync-upstream.yml`，也可在仓库 Actions 页手动触发。
+> 同步 workflow 在 `.github/workflows/sync-upstream.yml`，也可在仓库 Actions 页手动触发，或通过 `repository_dispatch` webhook 触发。
 
 ---
 
@@ -68,10 +68,11 @@ npm run build
 ```
 hydrallm-demo/
 ├── .github/workflows/
-│   └── sync-upstream.yml         # 每 30min 同步上游 HydraLLM ui/src
+│   └── sync-upstream.yml         # 每小时整点（UTC）同步上游 HydraLLM ui/src
 ├── src/                          # Vue 3 着陆页源码
-│   ├── components/
-│   └── data/sections.ts
+│   ├── components/               # 文档布局、代码块、自定义容器等
+│   ├── pages/docs/               # 文档站 8 个章节组件
+│   └── data/sections.ts          # 站点文案 + 文档导航元数据
 ├── ui/                           # HydraLLM React UI（自动同步上游）
 │   ├── src/                      # 同步自上游 HydraLLM/ui/src
 │   ├── public/favicon.svg
@@ -79,8 +80,10 @@ hydrallm-demo/
 │   ├── package.json
 │   └── vite.config.ts            # base: '/ui/'
 ├── public/favicon.svg
+├── index.html
 ├── vite.config.ts
 ├── uno.config.ts
+├── wrangler.toml
 └── package.json
 ```
 

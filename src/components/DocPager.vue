@@ -20,13 +20,19 @@ function navigate(id: string) {
   <nav class="prev-next">
     <div class="pager">
       <button v-if="prev" class="pager-link" @click="navigate(prev.id)">
-        <span class="desc">上一页</span>
+        <span class="desc">
+          <span class="i-lucide-arrow-left h-3 w-3" />
+          上一页
+        </span>
         <span class="title">{{ prev.title }}</span>
       </button>
     </div>
     <div class="pager">
       <button v-if="next" class="pager-link next" @click="navigate(next.id)">
-        <span class="desc">下一页</span>
+        <span class="desc">
+          下一页
+          <span class="i-lucide-arrow-right h-3 w-3" />
+        </span>
         <span class="title">{{ next.title }}</span>
       </button>
     </div>

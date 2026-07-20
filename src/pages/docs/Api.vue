@@ -17,6 +17,8 @@ const adminEndpoints = [
   { m: 'GET', p: '/api/stats', d: '实时统计（每秒轮询）' },
   { m: 'POST', p: '/api/providers/health', d: '供应商健康检查' },
   { m: 'POST', p: '/api/model-tests/run', d: '运行模型能力测试（text/vision/tool）' },
+  { m: 'POST', p: '/api/model-source/preview', d: '预览远程模型列表（不保存配置）' },
+  { m: 'POST', p: '/api/model-source/refresh', d: '刷新远程模型来源（重新拉取模型列表）' },
 ]
 </script>
 
@@ -49,6 +51,17 @@ curl http://localhost:8787/v1/chat/completions \
     "messages": [{"role":"user","content":"Hello!"}],
     "stream": true
   }'</CodeBlock>
+
+    <h3>预览远程模型来源<a class="header-anchor" href="#model-source-preview" aria-label="Permalink"></a></h3>
+    <CodeBlock lang="bash"># 预览第三方 URL 的模型列表（不保存配置）
+curl -X POST http://localhost:8787/api/model-source/preview \
+  -H "x-admin-session: $ADMIN_SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://api.openai.com/v1/models",
+    "apiKey": "sk-your-key"
+  }'
+# 返回：{ "ok": true, "count": 12, "models": ["gpt-4o", "gpt-4.1-mini", ...] }</CodeBlock>
 
     <h2>管理端点<a class="header-anchor" href="#admin-endpoints" aria-label="Permalink"></a></h2>
     <DocContainer type="warning" title="需要管理员令牌">

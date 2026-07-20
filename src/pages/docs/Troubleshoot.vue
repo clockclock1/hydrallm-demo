@@ -5,7 +5,7 @@ const faqs = [
   { q: '如何测试单个目标的连通性？', a: '进入管理界面「模型测试」页面，选择目标后点击「开始测试」。会测试文本、视觉和工具调用三种能力。' },
   { q: '支持哪些上游供应商？', a: '只要供应商提供 OpenAI 兼容的 API 接口即可。已验证：OpenAI、Anthropic（通过兼容层）、DeepSeek、Moonshot、智谱 GLM、通义千问、本地 Ollama/vLLM 等。' },
   { q: '配置文件在哪里？会丢失吗？', a: '配置存储在 data/config.json，通过管理界面保存后自动持久化。使用 Docker 部署时，通过 -v $(pwd)/data:/app/data 挂载数据卷即可确保不丢失。' },
-  { q: '本演示站的 ui/ 目录会不会自动更新？', a: '会。GitHub Actions 每小时整点检查上游 HydraLLM 的提交，发现 ui/src/ 有变化会自动 commit 到 main，Cloudflare Pages 的 Git 集成会随之重新部署。' },
+  { q: '本演示站的 ui/ 目录会不会自动更新？', a: '会。GitHub Actions 每小时整点（UTC）检查上游 HydraLLM 的提交，发现 ui/src/ 有变化会自动 commit 到 main，Cloudflare Pages 的 Git 集成会随之重新部署。也可在 Actions 页手动触发，或通过 repository_dispatch webhook 即时触发。' },
 ]
 </script>
 

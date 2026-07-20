@@ -115,26 +115,28 @@ const editLink = computed(() => {
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-[272px_minmax(0,1fr)_192px] gap-8">
 
-    <!-- 左侧 sidebar（按分组渲染章节项） -->
+    <!-- 左侧 sidebar（按分组渲染章节项）- Temp Mail Docs 风格 -->
     <aside class="hidden lg:block">
-      <nav class="sticky top-6 flex flex-col gap-6">
-        <div v-for="g in grouped" :key="g.key">
-          <!-- 分组标题 -->
-          <p class="mb-2 text-[14px] font-bold text-[var(--vp-c-text-1)]">{{ g.label }}</p>
+      <nav class="vp-sidebar">
+        <div v-for="g in grouped" :key="g.key" class="vp-sidebar-group">
+          <!-- 分组标题 - Temp Mail Docs 风格：带左侧装饰条 -->
+          <p class="vp-sidebar-group-title">
+            <span class="vp-sidebar-group-icon i-lucide-folder-open" />
+            {{ g.label }}
+          </p>
           <!-- 分组下的页面项 -->
-          <ul class="flex flex-col gap-0.5">
+          <ul class="vp-sidebar-items">
             <li v-for="s in g.items" :key="s.id">
               <button
                 @click="navigate(s.id)"
                 :class="[
-                  'flex w-full items-center gap-2 py-1.5 text-left text-[14px] font-medium transition-colors duration-150',
-                  docId === s.id
-                    ? 'text-[var(--vp-c-brand-1)]'
-                    : 'text-[var(--vp-c-text-2)] hover:text-[var(--vp-c-text-1)]',
+                  'vp-sidebar-link',
+                  docId === s.id ? 'active' : '',
                 ]"
               >
-                <span :class="s.icon" class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
-                {{ s.label }}
+                <span :class="s.icon" class="vp-sidebar-icon" />
+                <span class="vp-sidebar-text">{{ s.label }}</span>
+                <span v-if="docId === s.id" class="vp-sidebar-active-bar" />
               </button>
             </li>
           </ul>
