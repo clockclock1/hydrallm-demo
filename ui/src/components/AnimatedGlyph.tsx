@@ -8,6 +8,7 @@ export type AnimatedGlyphVariant =
   | 'release'
   | 'lab'
   | 'stats'
+  | 'memory'
   | 'overview'
   | 'load'
   | 'save'
@@ -35,6 +36,16 @@ export default function AnimatedGlyph({
         <span className="live-glyph-pulse absolute left-[3px] top-[3px] h-1.5 w-1.5 rounded-full bg-current" />
         <span className="live-glyph-pulse live-glyph-delay absolute bottom-[3px] right-[3px] h-1.5 w-1.5 rounded-full bg-current" />
         <span className="absolute left-[6px] top-[7px] h-0.5 w-3 rotate-45 rounded-full bg-current opacity-70" />
+      </span>
+    );
+  }
+
+  if (variant === 'memory') {
+    return (
+      <span className={cn('live-animated-icon relative inline-flex h-4 w-4 shrink-0 items-center justify-center', className)} aria-hidden="true">
+        <span className="absolute bottom-[2px] left-[2px] h-2.5 w-1.5 rounded-sm bg-current opacity-60" />
+        <span className="live-glyph-pulse absolute bottom-[2px] left-[7px] h-3.5 w-1.5 rounded-sm bg-current" />
+        <span className="live-glyph-pulse live-glyph-delay absolute bottom-[2px] right-[2px] h-2 w-1.5 rounded-sm bg-current opacity-80" />
       </span>
     );
   }

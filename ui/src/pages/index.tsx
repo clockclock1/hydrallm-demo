@@ -1,23 +1,15 @@
-import type { ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 import type { Page } from '../types';
-import DashboardPage from './DashboardPage';
-import ProvidersPage from './ProvidersPage';
-import ModelTestsPage from './ModelTestsPage';
-import FailoverChainsPage from './FailoverChainsPage';
-import ModelStatsPage from './ModelStatsPage';
-import ProxyEndpointsPage from './ProxyEndpointsPage';
-import LiveStatusPage from './LiveStatusPage';
-import LogsPage from './LogsPage';
 
 export const pageComponents: Record<Page, ComponentType> = {
-  dashboard: DashboardPage,
-  providers: ProvidersPage,
-  'model-tests': ModelTestsPage,
-  chains: FailoverChainsPage,
-  'model-stats': ModelStatsPage,
-  endpoints: ProxyEndpointsPage,
-  'live-status': LiveStatusPage,
-  logs: LogsPage,
+  dashboard: lazy(() => import('./DashboardPage')),
+  providers: lazy(() => import('./ProvidersPage')),
+  'model-tests': lazy(() => import('./ModelTestsPage')),
+  chains: lazy(() => import('./FailoverChainsPage')),
+  'model-stats': lazy(() => import('./ModelStatsPage')),
+  endpoints: lazy(() => import('./ProxyEndpointsPage')),
+  'live-status': lazy(() => import('./LiveStatusPage')),
+  logs: lazy(() => import('./LogsPage')),
 };
 
 export const pagePaths: Record<Page, string> = {

@@ -51,9 +51,10 @@ interface BackendConfig {
 }
 
 interface BackendStats {
-  requests: number;
-  successes: number;
-  failures: number;
+  startedAt?: string;
+  requests?: number;
+  successes?: number;
+  failures?: number;
   failovers?: number;
   memory?: {
     pid?: number;
@@ -96,6 +97,7 @@ interface State {
   authenticated: boolean;
   authChecked: boolean;
   configLoaded: boolean;
+  pageStatsLoading: boolean;
   saveStatus: 'idle' | 'loading' | 'saving' | 'saved' | 'error';
   saveError: string;
   hasUnsavedChanges: boolean;
@@ -111,8 +113,9 @@ type Action =
   | { type: 'CLEAR_AUTH' }
   | { type: 'SET_AUTH_CHECKED'; checked: boolean }
   | { type: 'SET_SAVE_STATUS'; status: State['saveStatus']; error?: string }
+  | { type: 'SET_PAGE_STATS_LOADING'; page: Page; loading: boolean }
   | { type: 'LOAD_BACKEND_STATE'; config: BackendConfig; stats?: BackendStats | null }
-  | { type: 'LOAD_BACKEND_STATS'; stats: BackendStats }
+  | { type: 'LOAD_BACKEND_STATS'; stats: BackendStats; page?: Page }
   | { type: 'ADD_PROVIDER'; provider: Provider }
   | { type: 'UPDATE_PROVIDER'; provider: Provider }
   | { type: 'DELETE_PROVIDER'; id: string }
@@ -183,6 +186,7 @@ const initialState: State = {
   authenticated: false,
   authChecked: false,
   configLoaded: false,
+  pageStatsLoading: true,
   saveStatus: 'idle',
   saveError: '',
   hasUnsavedChanges: false,
@@ -230,7 +234,12 @@ function markConfigChanged(state: State, updates: Partial<State>): State {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_PAGE':
-      return { ...state, currentPage: action.page };
+      if (state.currentPage === action.page) return state;
+      return {
+        ...state,
+        currentPage: action.page,
+        pageStatsLoading: state.configLoaded && Boolean(pageStatsPath(action.page)),
+      };
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
     case 'SET_ADMIN_TOKEN':
@@ -246,6 +255,7 @@ function reducer(state: State, action: Action): State {
         authenticated: false,
         authChecked: true,
         configLoaded: false,
+        pageStatsLoading: false,
         backendConfig: null,
         backendStats: null,
         providers: [],
@@ -260,6 +270,9 @@ function reducer(state: State, action: Action): State {
       return { ...state, authChecked: action.checked };
     case 'SET_SAVE_STATUS':
       return { ...state, saveStatus: action.status, saveError: action.error || '' };
+    case 'SET_PAGE_STATS_LOADING':
+      if (state.currentPage !== action.page) return state;
+      return { ...state, pageStatsLoading: action.loading };
     case 'LOAD_BACKEND_STATE': {
       const mapped = backendToUi(action.config, action.stats || null);
       return {
@@ -272,12 +285,14 @@ function reducer(state: State, action: Action): State {
         authenticated: true,
         authChecked: true,
         configLoaded: true,
+        pageStatsLoading: state.configLoaded ? state.pageStatsLoading : Boolean(pageStatsPath(state.currentPage)),
         saveStatus: 'idle',
         saveError: '',
         hasUnsavedChanges: false,
       };
     }
     case 'LOAD_BACKEND_STATS':
+      if (action.page && action.page !== state.currentPage) return state;
       return applyStatsToState(state, action.stats);
     case 'ADD_PROVIDER':
       return markConfigChanged(state, { providers: [...state.providers, action.provider] });
@@ -326,11 +341,19 @@ function reducer(state: State, action: Action): State {
 }
 
 function applyStatsToState(state: State, stats: BackendStats): State {
+  const hasChains = Object.prototype.hasOwnProperty.call(stats, 'chains');
+  const hasLogs = Object.prototype.hasOwnProperty.call(stats, 'logs');
+  const hasActiveThreads = Object.prototype.hasOwnProperty.call(stats, 'activeThreads');
   return {
     ...state,
-    backendStats: stats,
-    activeThreads: (stats.activeThreads || []).map(normalizeActiveThread),
-    chains: state.chains.map((chain) => {
+    backendStats: {
+      ...(state.backendStats || {}),
+      ...stats,
+    },
+    activeThreads: hasActiveThreads
+      ? (stats.activeThreads || []).map(normalizeActiveThread)
+      : state.activeThreads,
+    chains: hasChains ? state.chains.map((chain) => {
       const modelStats = stats.chains?.[chain.proxyModelName];
       if (!modelStats) return chain;
       const totalFinished = modelStats.successes + modelStats.failures;
@@ -341,8 +364,8 @@ function applyStatsToState(state: State, stats: BackendStats): State {
         failoverCount: modelStats.failovers,
         successRate,
       };
-    }),
-    logs: (stats.logs || []).map((log) => ({
+    }) : state.chains,
+    logs: hasLogs ? (stats.logs || []).map((log) => ({
       id: log.id,
       timestamp: log.timestamp,
       chainName: log.chainName,
@@ -352,7 +375,7 @@ function applyStatsToState(state: State, stats: BackendStats): State {
       status: log.status,
       latency: log.latency,
       error: log.error,
-    })),
+    })) : state.logs,
   };
 }
 
@@ -562,6 +585,23 @@ async function readJsonError(res: Response) {
   return body?.error?.message || `${res.status} ${res.statusText}`;
 }
 
+function pageStatsPath(page: Page) {
+  switch (page) {
+    case 'dashboard':
+    case 'chains':
+    case 'model-stats':
+    case 'live-status':
+    case 'logs':
+      return `/api/stats/page/${page}`;
+    default:
+      return '';
+  }
+}
+
+function pageNeedsProviderHealth(page: Page) {
+  return page === 'dashboard' || page === 'providers';
+}
+
 const StoreContext = createContext<{
   state: State;
   dispatch: React.Dispatch<Action>;
@@ -570,7 +610,7 @@ const StoreContext = createContext<{
   loadConfig: (sessionOverride?: string) => Promise<void>;
   saveConfig: () => Promise<void>;
   fetchProviderModels: (url: string, apiKey: string) => Promise<string[]>;
-  refreshProviderHealth: () => Promise<void>;
+  refreshProviderHealth: (providerId?: string, refresh?: boolean) => Promise<void>;
   runModelTests: (targets: ModelTestTarget[], capabilities: ModelCapability[], signal?: AbortSignal) => Promise<ModelTestResult[]>;
 } | null>(null);
 
@@ -602,10 +642,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       throw new Error(message);
     }
     const config = await res.json();
-    const stats = await fetch('/api/stats', {
-      headers: adminHeaders(session),
-    }).then((statsRes) => statsRes.ok ? statsRes.json() : null).catch(() => null);
-    dispatch({ type: 'LOAD_BACKEND_STATE', config, stats });
+    dispatch({ type: 'LOAD_BACKEND_STATE', config });
   }, [state.adminSession, adminHeaders, handleUnauthorized]);
 
   const login = useCallback(async (token: string) => {
@@ -661,10 +698,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       throw new Error(message);
     }
     const body = await res.json();
-    const stats = await fetch('/api/stats', {
-      headers: adminHeaders(session),
-    }).then((statsRes) => statsRes.ok ? statsRes.json() : null).catch(() => null);
-    dispatch({ type: 'LOAD_BACKEND_STATE', config: body.config, stats });
+    dispatch({ type: 'LOAD_BACKEND_STATE', config: body.config });
     dispatch({ type: 'SET_SAVE_STATUS', status: 'saved' });
   }, [state, adminHeaders, handleUnauthorized]);
 
@@ -698,15 +732,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [providerHealthSignature]
   );
 
-  const refreshProviderHealth = useCallback(async () => {
+  const refreshProviderHealth = useCallback(async (providerId?: string, refresh = false) => {
     if (!state.configLoaded || !providerHealthRequest.length) return;
+    const providers = providerId
+      ? providerHealthRequest.filter(provider => provider.id === providerId)
+      : providerHealthRequest;
+    if (!providers.length) return;
     const res = await fetch('/api/providers/health', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         ...adminHeaders(),
       },
-      body: JSON.stringify({ providers: providerHealthRequest }),
+      body: JSON.stringify({ providers, refresh }),
     });
     handleUnauthorized(res);
     if (!res.ok) throw new Error(await readJsonError(res));
@@ -730,6 +768,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return body.results || [];
   }, [adminHeaders, handleUnauthorized]);
 
+  const fetchPageStats = useCallback(async (page: Page, signal?: AbortSignal) => {
+    const path = pageStatsPath(page);
+    if (!path || !state.configLoaded) return;
+    const res = await fetch(path, {
+      headers: adminHeaders(),
+      signal,
+    });
+    if (res.status === 401) {
+      dispatch({ type: 'CLEAR_AUTH' });
+      return;
+    }
+    if (!res.ok) return;
+    const stats = await res.json();
+    dispatch({ type: 'LOAD_BACKEND_STATS', stats, page });
+  }, [state.configLoaded, adminHeaders]);
+
   useEffect(() => {
     if (state.authChecked) return;
     if (!state.adminSession) {
@@ -740,32 +794,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state.authChecked, state.adminSession, loadConfig]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (!state.configLoaded) return;
-      fetch('/api/stats', { headers: adminHeaders() })
-        .then((res) => {
-          if (res.status === 401) {
-            dispatch({ type: 'CLEAR_AUTH' });
-            return null;
+    if (!state.configLoaded) return undefined;
+    const page = state.currentPage;
+    if (!pageStatsPath(page)) return undefined;
+    let activeController: AbortController | null = null;
+    let stopped = false;
+    const load = (firstLoad = false) => {
+      if (activeController) return;
+      const controller = new AbortController();
+      activeController = controller;
+      fetchPageStats(page, controller.signal)
+        .catch((err) => {
+          if (!(err instanceof DOMException && err.name === 'AbortError')) {
+            return undefined;
           }
-          return res.ok ? res.json() : null;
+          return undefined;
         })
-        .then((stats) => {
-          if (stats) dispatch({ type: 'LOAD_BACKEND_STATS', stats });
-        })
-        .catch(() => undefined);
+        .finally(() => {
+          if (activeController === controller) activeController = null;
+          if (firstLoad) {
+            dispatch({ type: 'SET_PAGE_STATS_LOADING', page, loading: false });
+          }
+        });
+    };
+    dispatch({ type: 'SET_PAGE_STATS_LOADING', page, loading: true });
+    load(true);
+    if (page !== 'live-status') {
+      return () => {
+        stopped = true;
+        activeController?.abort();
+      };
+    }
+    const timer = window.setInterval(() => {
+      if (!stopped) load();
     }, 1000);
-    return () => window.clearInterval(timer);
-  }, [state.configLoaded, adminHeaders]);
+    return () => {
+      stopped = true;
+      activeController?.abort();
+      window.clearInterval(timer);
+    };
+  }, [state.configLoaded, state.currentPage, fetchPageStats]);
 
   useEffect(() => {
-    if (!state.configLoaded || !state.providers.length) return;
+    if (!state.configLoaded || !state.providers.length || !pageNeedsProviderHealth(state.currentPage)) return;
     refreshProviderHealth().catch(() => undefined);
-    const timer = window.setInterval(() => {
-      refreshProviderHealth().catch(() => undefined);
-    }, 30000);
-    return () => window.clearInterval(timer);
-  }, [state.configLoaded, providerHealthSignature, refreshProviderHealth]);
+  }, [state.configLoaded, state.currentPage, providerHealthSignature, refreshProviderHealth]);
 
   return (
     <StoreContext.Provider value={{ state, dispatch, login, logout, loadConfig, saveConfig, fetchProviderModels, refreshProviderHealth, runModelTests }}>

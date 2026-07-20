@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Clock3, Server } from 'lucide-react';
 import { useStore } from '../store';
 import type { ActiveThread } from '../types';
@@ -30,6 +31,25 @@ function formatBytes(value?: number) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const unitIndex = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+const memoryLabels: Record<string, string> = {
+  pid: '进程 ID',
+  workingSetBytes: '工作集',
+  peakWorkingSetBytes: '峰值工作集',
+  privateBytes: '私有内存',
+  virtualBytes: '虚拟内存',
+  dataBytes: '数据段',
+};
+
+function formatMemoryValue(key: string, value: unknown) {
+  if (typeof value === 'number' && key.toLowerCase().includes('bytes')) {
+    return formatBytes(value);
+  }
+  if (typeof value === 'number') return value.toLocaleString();
+  if (typeof value === 'string') return value || '-';
+  if (value === null || value === undefined) return '-';
+  return JSON.stringify(value);
 }
 
 function PhasePill({ phase }: { phase: string }) {
@@ -96,15 +116,15 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
       )}
 
       {thread.attemptErrors.length > 0 && (
-        <div className="mt-4 rounded-lg border border-red-100 bg-red-50/60 p-3">
+        <div className="live-attempt-errors mt-4 rounded-lg border border-red-100 bg-red-50/60 p-3">
           <p className="text-xs font-semibold text-red-700">转移原因</p>
           <div className="mt-2 space-y-2">
             {thread.attemptErrors.map((item, attemptIndex) => (
-              <div key={`${item.target}-${item.attempt || 0}-${attemptIndex}`} className="rounded-md bg-white px-3 py-2 text-xs text-red-700">
+              <div key={`${item.target}-${item.attempt || 0}-${attemptIndex}`} className="live-attempt-error-item rounded-md bg-white px-3 py-2 text-xs text-red-700">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono font-semibold">{item.target || 'target'}</span>
                   {item.attempt !== undefined && <span className="text-red-400">#{item.attempt}</span>}
-                  {item.status ? <span className="rounded bg-red-100 px-1.5 py-0.5 font-mono">{item.status}</span> : null}
+                  {item.status ? <span className="live-attempt-status rounded bg-red-100 px-1.5 py-0.5 font-mono">{item.status}</span> : null}
                 </div>
                 <p className="mt-1 break-words text-red-600">{item.message}</p>
                 {item.detail && item.detail !== item.message && (
@@ -121,10 +141,12 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
 
 export default function LiveStatus() {
   const { state } = useStore();
+  const [memoryExpanded, setMemoryExpanded] = useState(false);
   const now = Date.now();
   const threads = state.activeThreads;
   const activeChains = new Set(threads.map(thread => thread.chainName)).size;
   const memory = state.backendStats?.memory;
+  const memoryEntries = Object.entries(memory || {});
 
   return (
     <div className="space-y-6">
@@ -158,13 +180,39 @@ export default function LiveStatus() {
           </div>
           <p className="mt-2 text-2xl font-bold text-slate-800">{activeChains}</p>
         </div>
-        <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '90ms' }}>
+        <button
+          type="button"
+          onClick={() => setMemoryExpanded(expanded => !expanded)}
+          aria-expanded={memoryExpanded}
+          className="motion-card cursor-pointer rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2"
+          style={{ animationDelay: '90ms' }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">内存占用</span>
-            <AnimatedGlyph variant="stats" className="text-emerald-500" />
+            <AnimatedGlyph variant="memory" className="text-emerald-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-slate-800">{formatBytes(memory?.workingSetBytes)}</p>
-        </div>
+        </button>
+        {memoryExpanded && (
+          <div className="motion-card rounded-xl border border-slate-200 bg-white p-4 md:col-span-3" style={{ animationDelay: '115ms' }}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {memoryEntries.map(([key, value]) => (
+                <div key={key} className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400">{memoryLabels[key] || key}</p>
+                  <p className="mt-1 break-words font-mono text-sm font-semibold text-slate-700">
+                    {formatMemoryValue(key, value)}
+                  </p>
+                  <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{key}</p>
+                </div>
+              ))}
+              {!memoryEntries.length && (
+                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
+                  暂无内存数据
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

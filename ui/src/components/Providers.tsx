@@ -401,7 +401,7 @@ export default function Providers() {
   const handleCheckHealth = async (id: string) => {
     setCheckingId(id);
     try {
-      await refreshProviderHealth();
+      await refreshProviderHealth(id, true);
     } finally {
       setCheckingId(null);
     }

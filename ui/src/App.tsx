@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import Sidebar from './components/Sidebar';
@@ -21,7 +21,23 @@ function PageContent() {
 
   return (
     <div key={state.currentPage} className="page-motion">
-      <PageComponent />
+      <Suspense key={state.currentPage} fallback={<PageLoading />}>
+        <div className={state.pageStatsLoading ? 'hidden' : undefined}>
+          <PageComponent key={state.currentPage} />
+        </div>
+        {state.pageStatsLoading && <PageLoading label="正在加载状态..." />}
+      </Suspense>
+    </div>
+  );
+}
+
+function PageLoading({ label = '正在加载页面...' }: { label?: string }) {
+  return (
+    <div className="flex min-h-72 items-center justify-center text-sm text-slate-500">
+      <div className="flex flex-col items-center gap-5">
+        <LoadingSpinner size="md" className="text-cyan-400" />
+        <span className="font-medium">{label}</span>
+      </div>
     </div>
   );
 }
