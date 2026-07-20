@@ -178,6 +178,17 @@ button:active {
   }
 }
 
+@keyframes live-status-settle {
+  0% {
+    opacity: 0.72;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @property --angle {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -1560,6 +1571,64 @@ button:active {
     box-shadow 220ms ease,
     transform 220ms ease,
     background-color 220ms ease;
+}
+
+.uiverse-shell main {
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+}
+
+.uiverse-shell :where(
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .uiverse-model-picker-list,
+  .model-test-results-scroll,
+  [data-lenis-prevent]
+) {
+  overscroll-behavior: auto;
+  scroll-behavior: smooth;
+}
+
+.live-memory-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-10px);
+  transition:
+    grid-template-rows 620ms cubic-bezier(0.18, 0.82, 0.22, 1),
+    opacity 360ms ease,
+    transform 620ms cubic-bezier(0.18, 0.82, 0.22, 1);
+  will-change: grid-template-rows, opacity, transform;
+}
+
+.live-memory-panel-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.live-memory-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+}
+
+.live-memory-panel .motion-card {
+  animation: none;
+  transform-origin: top;
+}
+
+.live-status-thread-area {
+  transition:
+    transform 620ms cubic-bezier(0.18, 0.82, 0.22, 1),
+    opacity 360ms ease;
+  will-change: transform, opacity;
+}
+
+.live-status-thread-area-memory-open {
+  animation: live-status-settle 620ms cubic-bezier(0.18, 0.82, 0.22, 1) both;
 }
 
 .table-row-motion {

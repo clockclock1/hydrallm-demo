@@ -13,7 +13,11 @@ export function usePageNavigation() {
       if (window.location.pathname !== path || window.location.search || window.location.hash) {
         window.history[method]({ page }, '', path);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.__hydrallmLenis) {
+        window.__hydrallmLenis.scrollTo(0, { duration: 0.55 });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
     dispatch({ type: 'SET_PAGE', page });
   }, [dispatch]);

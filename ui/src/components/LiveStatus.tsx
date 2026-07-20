@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Clock3, Server } from 'lucide-react';
 import { useStore } from '../store';
 import type { ActiveThread } from '../types';
@@ -148,6 +148,12 @@ export default function LiveStatus() {
   const memory = state.backendStats?.memory;
   const memoryEntries = Object.entries(memory || {});
 
+  useEffect(() => {
+    window.__hydrallmLenis?.resize();
+    const timer = window.setTimeout(() => window.__hydrallmLenis?.resize(), 620);
+    return () => window.clearTimeout(timer);
+  }, [memoryExpanded, memoryEntries.length]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -193,29 +199,37 @@ export default function LiveStatus() {
           </div>
           <p className="mt-2 text-2xl font-bold text-slate-800">{formatBytes(memory?.workingSetBytes)}</p>
         </button>
-        {memoryExpanded && (
-          <div className="motion-card rounded-xl border border-slate-200 bg-white p-4 md:col-span-3" style={{ animationDelay: '115ms' }}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {memoryEntries.map(([key, value]) => (
-                <div key={key} className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs text-slate-400">{memoryLabels[key] || key}</p>
-                  <p className="mt-1 break-words font-mono text-sm font-semibold text-slate-700">
-                    {formatMemoryValue(key, value)}
-                  </p>
-                  <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{key}</p>
-                </div>
-              ))}
-              {!memoryEntries.length && (
-                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
-                  暂无内存数据
-                </div>
-              )}
+        <div
+          className={cn(
+            'live-memory-panel md:col-span-3',
+            memoryExpanded && 'live-memory-panel-open'
+          )}
+          aria-hidden={!memoryExpanded}
+        >
+          <div className="live-memory-panel-inner">
+            <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '115ms' }}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {memoryEntries.map(([key, value]) => (
+                  <div key={key} className="rounded-lg bg-slate-50 p-3">
+                    <p className="text-xs text-slate-400">{memoryLabels[key] || key}</p>
+                    <p className="mt-1 break-words font-mono text-sm font-semibold text-slate-700">
+                      {formatMemoryValue(key, value)}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{key}</p>
+                  </div>
+                ))}
+                {!memoryEntries.length && (
+                  <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
+                    暂无内存数据
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className={cn('live-status-thread-area space-y-3', memoryExpanded && 'live-status-thread-area-memory-open')}>
         {threads.map((thread, index) => (
           <ThreadCard key={thread.id} thread={thread} now={now} index={index} />
         ))}
