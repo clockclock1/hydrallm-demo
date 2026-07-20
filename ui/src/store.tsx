@@ -634,6 +634,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_SAVE_STATUS', status: 'loading' });
     const res = await fetch('/api/config', {
       headers: adminHeaders(session),
+      cache: 'no-store',
     });
     if (!res.ok) {
       handleUnauthorized(res);
@@ -650,6 +651,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
+      cache: 'no-store',
       body: JSON.stringify({ token }),
     });
     if (!res.ok) {
@@ -670,6 +672,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await fetch('/api/logout', {
         method: 'POST',
         headers: adminHeaders(session),
+        cache: 'no-store',
       }).catch(() => undefined);
     }
     dispatch({ type: 'CLEAR_AUTH' });
@@ -689,6 +692,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         'content-type': 'application/json',
         ...adminHeaders(session),
       },
+      cache: 'no-store',
       body: JSON.stringify(nextConfig),
     });
     if (!res.ok) {
@@ -709,6 +713,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         'content-type': 'application/json',
         ...adminHeaders(),
       },
+      cache: 'no-store',
       body: JSON.stringify({ url, apiKey }),
     });
     handleUnauthorized(res);
@@ -744,6 +749,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         'content-type': 'application/json',
         ...adminHeaders(),
       },
+      cache: 'no-store',
       body: JSON.stringify({ providers, refresh }),
     });
     handleUnauthorized(res);
@@ -760,6 +766,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...adminHeaders(),
       },
       signal,
+      cache: 'no-store',
       body: JSON.stringify({ targets, capabilities }),
     });
     handleUnauthorized(res);
@@ -774,6 +781,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const res = await fetch(path, {
       headers: adminHeaders(),
       signal,
+      cache: 'no-store',
     });
     if (res.status === 401) {
       dispatch({ type: 'CLEAR_AUTH' });

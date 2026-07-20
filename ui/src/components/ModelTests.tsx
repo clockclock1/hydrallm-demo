@@ -232,13 +232,13 @@ export default function ModelTests() {
       </div>
 
       {(running || progress.total > 0) && (
-        <div className="motion-card rounded-xl border border-cyan-200 bg-cyan-50/70 p-4">
+        <div className="model-test-progress-card motion-card rounded-xl border border-cyan-200 bg-cyan-50/70 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-cyan-800">
                 {running ? <LoadingSpinner size="sm" /> : progress.stopped ? <Square size={14} /> : <CheckCircle2 size={15} />}
                 <span>{running ? '逐个测试中' : progress.stopped ? '测试已终止' : '测试已完成'}</span>
-                <span className="rounded-full bg-white/70 px-2 py-0.5 font-mono text-xs text-cyan-700">
+                <span className="model-test-progress-count rounded-full bg-white/70 px-2 py-0.5 font-mono text-xs text-cyan-700">
                   {progress.completed} / {progress.total}
                 </span>
               </div>
@@ -251,9 +251,9 @@ export default function ModelTests() {
                 <span>Progress</span>
                 <span>{progressPercent}%</span>
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/70">
+              <div className="model-test-progress-track mt-1 h-2 overflow-hidden rounded-full bg-white/70">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300"
+                  className="model-test-progress-fill h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -324,15 +324,15 @@ export default function ModelTests() {
                     key={target.id}
                     onClick={() => toggleTarget(target.id)}
                     className={cn(
-                      'table-row-motion w-full rounded-lg border p-3 text-left transition-all',
-                      isCurrent ? 'border-cyan-500 bg-cyan-100 shadow-lg shadow-cyan-200/60' :
-                      active ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                      'model-test-target-option table-row-motion w-full rounded-lg border p-3 text-left transition-all',
+                      isCurrent ? 'model-test-target-current border-cyan-500 bg-cyan-100 shadow-lg shadow-cyan-200/60' :
+                      active ? 'model-test-target-active border-cyan-300 bg-cyan-50' : 'model-test-target-idle border-slate-200 bg-white hover:bg-slate-50'
                     )}
                     style={{ animationDelay: `${Math.min(index, 14) * 18}ms` }}
                   >
                     <div className="flex items-start gap-3">
                       <span className={cn(
-                        'mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border',
+                        'model-test-target-check mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border',
                         active ? 'border-cyan-600 bg-cyan-600 text-white' : 'border-slate-300 text-transparent'
                       )}>
                         <Check size={13} />

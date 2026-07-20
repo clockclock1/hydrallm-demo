@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Clock3, Server } from 'lucide-react';
 import { useStore } from '../store';
 import type { ActiveThread } from '../types';
@@ -147,12 +147,6 @@ export default function LiveStatus() {
   const activeChains = new Set(threads.map(thread => thread.chainName)).size;
   const memory = state.backendStats?.memory;
   const memoryEntries = Object.entries(memory || {});
-
-  useEffect(() => {
-    window.__hydrallmLenis?.resize();
-    const timer = window.setTimeout(() => window.__hydrallmLenis?.resize(), 620);
-    return () => window.clearTimeout(timer);
-  }, [memoryExpanded, memoryEntries.length]);
 
   return (
     <div className="space-y-6">
