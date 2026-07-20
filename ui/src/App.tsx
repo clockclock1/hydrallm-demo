@@ -2,16 +2,9 @@ import { useEffect, useState } from 'react';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import Providers from './components/Providers';
-import ModelTests from './components/ModelTests';
-import FailoverChains from './components/FailoverChains';
-import ModelStats from './components/ModelStats';
-import ProxyEndpoints from './components/ProxyEndpoints';
-import LiveStatus from './components/LiveStatus';
-import Logs from './components/Logs';
 import Login from './components/Login';
 import LoadingOverlay, { LoadingSpinner } from './components/Loading';
+import { isKnownAppPath, pageComponents, pageFromPathname, pathForPage } from './pages';
 
 type ThemeMode = 'dark' | 'light';
 
@@ -24,29 +17,18 @@ function initialTheme(): ThemeMode {
 
 function PageContent() {
   const { state } = useStore();
-
-  const pages = {
-    dashboard: <Dashboard />,
-    providers: <Providers />,
-    'model-tests': <ModelTests />,
-    chains: <FailoverChains />,
-    'model-stats': <ModelStats />,
-    endpoints: <ProxyEndpoints />,
-    'live-status': <LiveStatus />,
-    logs: <Logs />,
-  };
+  const PageComponent = pageComponents[state.currentPage] || pageComponents.dashboard;
 
   return (
     <div key={state.currentPage} className="page-motion">
-      {pages[state.currentPage] || <Dashboard />}
+      <PageComponent />
     </div>
   );
 }
 
 function AppLayout() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pageBusy, setPageBusy] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
 
   useEffect(() => {
@@ -58,16 +40,22 @@ function AppLayout() {
   const toggleTheme = () => setTheme(current => current === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
-    if (!state.authenticated) return;
-    setPageBusy(true);
-    const timer = window.setTimeout(() => setPageBusy(false), 320);
-    return () => window.clearTimeout(timer);
-  }, [state.authenticated, state.currentPage]);
+    const syncRoute = () => {
+      const page = pageFromPathname(window.location.pathname);
+      dispatch({ type: 'SET_PAGE', page });
+      if (!isKnownAppPath(window.location.pathname)) {
+        window.history.replaceState({ page }, '', pathForPage(page));
+      }
+    };
+
+    syncRoute();
+    window.addEventListener('popstate', syncRoute);
+    return () => window.removeEventListener('popstate', syncRoute);
+  }, [dispatch]);
 
   const busyLabel =
     state.saveStatus === 'loading' ? '正在加载...' :
     state.saveStatus === 'saving' ? '正在保存...' :
-    pageBusy ? '正在切换...' :
     '';
   const showBusyOverlay = Boolean(busyLabel);
 

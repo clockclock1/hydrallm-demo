@@ -1,4 +1,4 @@
-import { Clock3, Server, TimerReset } from 'lucide-react';
+import { Clock3, Server } from 'lucide-react';
 import { useStore } from '../store';
 import type { ActiveThread } from '../types';
 import { cn } from '../utils/cn';
@@ -13,7 +13,7 @@ const phaseMeta: Record<string, { label: string; className: string }> = {
   'failed-target': { label: '目标失败', className: 'border-red-200 bg-red-50 text-red-700' },
   completed: { label: '已响应', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
   failed: { label: '失败', className: 'border-red-200 bg-red-50 text-red-700' },
-  'release-wait': { label: '释放等待', className: 'border-violet-200 bg-violet-50 text-violet-700' },
+  'release-wait': { label: '已响应', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
 };
 
 function elapsedText(startedAt: number, now: number) {
@@ -24,10 +24,12 @@ function elapsedText(startedAt: number, now: number) {
   return `${minutes}m ${seconds % 60}s`;
 }
 
-function releaseText(thread: ActiveThread, now: number) {
-  if (thread.phase !== 'release-wait' || !thread.releaseAt) return '';
-  const seconds = Math.max(0, Math.ceil((thread.releaseAt - now) / 1000));
-  return `${seconds}s 后释放`;
+function formatBytes(value?: number) {
+  const bytes = Number(value) || 0;
+  if (!bytes) return '-';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const unitIndex = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
 function PhasePill({ phase }: { phase: string }) {
@@ -41,7 +43,6 @@ function PhasePill({ phase }: { phase: string }) {
 
 function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number; index: number }) {
   const targetLabel = thread.targetModel || thread.targetName || thread.targetBaseUrl || '等待目标';
-  const release = releaseText(thread, now);
 
   return (
     <div className="motion-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md" style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}>
@@ -64,12 +65,6 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
             <Clock3 size={13} />
             {elapsedText(thread.startedAt, now)}
           </span>
-          {release && (
-            <span className="inline-flex items-center gap-1 text-violet-600">
-              <TimerReset size={13} />
-              {release}
-            </span>
-          )}
         </div>
       </div>
 
@@ -104,8 +99,8 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
         <div className="mt-4 rounded-lg border border-red-100 bg-red-50/60 p-3">
           <p className="text-xs font-semibold text-red-700">转移原因</p>
           <div className="mt-2 space-y-2">
-            {thread.attemptErrors.map((item, index) => (
-              <div key={`${item.target}-${item.attempt || 0}-${index}`} className="rounded-md bg-white px-3 py-2 text-xs text-red-700">
+            {thread.attemptErrors.map((item, attemptIndex) => (
+              <div key={`${item.target}-${item.attempt || 0}-${attemptIndex}`} className="rounded-md bg-white px-3 py-2 text-xs text-red-700">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono font-semibold">{item.target || 'target'}</span>
                   {item.attempt !== undefined && <span className="text-red-400">#{item.attempt}</span>}
@@ -128,8 +123,8 @@ export default function LiveStatus() {
   const { state } = useStore();
   const now = Date.now();
   const threads = state.activeThreads;
-  const releasing = threads.filter(thread => thread.phase === 'release-wait').length;
   const activeChains = new Set(threads.map(thread => thread.chainName)).size;
+  const memory = state.backendStats?.memory;
 
   return (
     <div className="space-y-6">
@@ -140,7 +135,7 @@ export default function LiveStatus() {
             Live Threads
           </div>
           <h2 className="mt-3 text-2xl font-bold text-slate-800">实时状况</h2>
-          <p className="mt-1 text-slate-500">查看代理 API 当前创建的线程和正在尝试的目标模型。</p>
+          <p className="mt-1 text-slate-500">查看代理 API 当前创建的线程、正在尝试的目标模型和进程内存占用。</p>
         </div>
         <div className="inline-flex w-fit items-center gap-2 self-start rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 xl:self-auto">
           <AnimatedGlyph variant="refresh" />
@@ -165,10 +160,10 @@ export default function LiveStatus() {
         </div>
         <div className="motion-card rounded-xl border border-slate-200 bg-white p-4" style={{ animationDelay: '90ms' }}>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">释放等待</span>
-            <AnimatedGlyph variant="release" className="text-amber-500" />
+            <span className="text-sm text-slate-500">内存占用</span>
+            <AnimatedGlyph variant="stats" className="text-emerald-500" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-slate-800">{releasing}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-800">{formatBytes(memory?.workingSetBytes)}</p>
         </div>
       </div>
 

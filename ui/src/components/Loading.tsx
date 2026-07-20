@@ -33,14 +33,14 @@ export default function LoadingOverlay({
   return (
     <div
       className={cn(
-        'loading-comp-global-react fixed inset-0 z-[80] flex items-center justify-center transition-all duration-300',
+        'loading-comp-global-react fixed inset-0 z-[80] flex items-center justify-center transition-all duration-100',
         show ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
       )}
       aria-hidden={!show}
     >
       <div
         className={cn(
-          'flex flex-col items-center gap-4 text-white transition-all duration-300',
+          'flex flex-col items-center gap-4 text-white transition-all duration-100',
           show ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-95 opacity-0'
         )}
       >

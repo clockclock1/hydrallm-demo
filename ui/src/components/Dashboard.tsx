@@ -10,6 +10,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react';
+import { usePageNavigation } from '../hooks/usePageNavigation';
 import { useStore } from '../store';
 import type { Page } from '../types';
 import { cn } from '../utils/cn';
@@ -53,7 +54,8 @@ function StatCard({ icon, label, value, sub, color, delay = 0, targetPage, onNav
 }
 
 export default function Dashboard() {
-  const { state, dispatch } = useStore();
+  const { state } = useStore();
+  const navigateToPage = usePageNavigation();
   const stats = state.backendStats;
   const onlineProviders = state.providers.filter(p => p.status === 'online').length;
   const totalModels = state.providers.reduce((sum, p) => sum + p.models.length, 0);
@@ -91,7 +93,7 @@ export default function Dashboard() {
           sub={`共 ${totalModels} 个模型`}
           color="bg-blue-50"
           targetPage="providers"
-          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
+          onNavigate={navigateToPage}
         />
         <StatCard
           icon={<GitBranch size={20} className="text-violet-600" />}
@@ -101,7 +103,7 @@ export default function Dashboard() {
           color="bg-violet-50"
           delay={60}
           targetPage="chains"
-          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
+          onNavigate={navigateToPage}
         />
         <StatCard
           icon={<TrendingUp size={20} className="text-emerald-600" />}
@@ -111,7 +113,7 @@ export default function Dashboard() {
           color="bg-emerald-50"
           delay={120}
           targetPage="logs"
-          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
+          onNavigate={navigateToPage}
         />
         <StatCard
           icon={<Zap size={20} className="text-amber-600" />}
@@ -121,7 +123,7 @@ export default function Dashboard() {
           color="bg-amber-50"
           delay={180}
           targetPage="model-stats"
-          onNavigate={(page) => dispatch({ type: 'SET_PAGE', page })}
+          onNavigate={navigateToPage}
         />
       </div>
 

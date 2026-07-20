@@ -67,8 +67,6 @@ function ChainEditor({
   const [strategy, setStrategy] = useState<FailoverChain['strategy']>(chain?.strategy === 'weighted' ? 'priority' : chain?.strategy || 'priority');
   const [proxyModelName, setProxyModelName] = useState(chain?.proxyModelName || '');
   const [proxyApiKey, setProxyApiKey] = useState(chain?.proxyApiKey || 'fpk-' + uuidv4().slice(0, 24));
-  const [concurrency, setConcurrency] = useState(chain?.concurrency || 1);
-  const [releaseDelaySeconds, setReleaseDelaySeconds] = useState(chain?.releaseDelaySeconds || 0);
   const [targetTimeoutSeconds, setTargetTimeoutSeconds] = useState(chain?.targetTimeoutSeconds || chain?.models?.[0]?.timeout || 30);
   const [targetMaxRetries, setTargetMaxRetries] = useState(chain?.targetMaxRetries ?? chain?.models?.[0]?.maxRetries ?? 0);
   const [circuitFailureThreshold, setCircuitFailureThreshold] = useState(chain?.circuitFailureThreshold || 3);
@@ -196,8 +194,6 @@ function ChainEditor({
       strategy,
       proxyModelName,
       proxyApiKey,
-      concurrency: Math.max(1, Math.min(64, Math.floor(Number(concurrency) || 1))),
-      releaseDelaySeconds: Math.max(0, Math.min(3600, Math.floor(Number(releaseDelaySeconds) || 0))),
       targetTimeoutSeconds: timeout,
       targetMaxRetries: maxRetries,
       circuitFailureThreshold: failureThreshold,
@@ -271,42 +267,6 @@ function ChainEditor({
               >
                 重新生成
               </button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-800">代理并发控制</h4>
-                <p className="mt-1 text-xs leading-5 text-slate-500">限制该代理模型同时处理的 API 请求数，请求结束后可延迟释放槽位。</p>
-              </div>
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 font-mono text-xs font-semibold text-blue-700">
-                {Math.max(1, Math.min(64, Math.floor(Number(concurrency) || 1)))} slots
-              </span>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-500">并发线程数</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={64}
-                  value={concurrency}
-                  onChange={event => setConcurrency(Math.max(1, Math.min(64, Number(event.target.value) || 1)))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-500">请求结束后释放延迟(秒)</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={3600}
-                  value={releaseDelaySeconds}
-                  onChange={event => setReleaseDelaySeconds(Math.max(0, Math.min(3600, Number(event.target.value) || 0)))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </label>
             </div>
           </div>
 
@@ -687,12 +647,6 @@ export default function FailoverChains() {
                       >
                         <span className="fallback-icon" aria-hidden="true">C</span>
                       </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-500">并发：</span>
-                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
-                        {chain.concurrency || 1} 线程 / 延迟 {chain.releaseDelaySeconds || 0}s
-                      </code>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">队列：</span>

@@ -19,8 +19,6 @@ interface BackendModel {
   publicName: string;
   enabled?: boolean;
   strategy?: FailoverChain['strategy'];
-  concurrency?: number;
-  releaseDelayMs?: number;
   circuitBreaker?: {
     failureThreshold?: number;
     cooldownMinutes?: number;
@@ -57,6 +55,14 @@ interface BackendStats {
   successes: number;
   failures: number;
   failovers?: number;
+  memory?: {
+    pid?: number;
+    workingSetBytes?: number;
+    peakWorkingSetBytes?: number;
+    privateBytes?: number;
+    virtualBytes?: number;
+    dataBytes?: number;
+  };
   chains?: Record<string, {
     requests: number;
     successes: number;
@@ -203,8 +209,6 @@ function normalizeChain(chain: FailoverChain): FailoverChain {
   return {
     ...chain,
     strategy: chain.strategy === 'weighted' ? 'priority' : chain.strategy || 'priority',
-    concurrency: Math.max(1, Math.min(64, Math.floor(Number(chain.concurrency) || 1))),
-    releaseDelaySeconds: Math.max(0, Math.min(3600, Math.floor(Number(chain.releaseDelaySeconds) || 0))),
     targetTimeoutSeconds: Math.max(1, Math.floor(Number(chain.targetTimeoutSeconds || firstModel?.timeout) || 30)),
     targetMaxRetries: Math.max(0, Math.floor(Number(chain.targetMaxRetries ?? firstModel?.maxRetries) || 0)),
     circuitFailureThreshold: Math.max(1, Math.floor(Number(chain.circuitFailureThreshold) || 3)),
@@ -367,7 +371,6 @@ function normalizeActiveThread(thread: ActiveThread): ActiveThread {
     status: String(thread.status || ''),
     startedAt: Number(thread.startedAt || 0),
     updatedAt: Number(thread.updatedAt || 0),
-    releaseAt: Number(thread.releaseAt || 0),
     failedModels: Array.isArray(thread.failedModels) ? thread.failedModels.map(String) : [],
     attemptErrors: Array.isArray(thread.attemptErrors)
       ? thread.attemptErrors.map(item => ({
@@ -452,8 +455,6 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
       strategy: model.strategy === 'weighted' ? 'priority' : model.strategy || 'priority',
       proxyModelName: model.publicName,
       proxyApiKey: firstProxyKey,
-      concurrency: Math.max(1, Math.min(64, Math.floor(Number(model.concurrency) || 1))),
-      releaseDelaySeconds: Math.max(0, Math.min(3600, Math.round(Number(model.releaseDelayMs || 0) / 1000))),
       targetTimeoutSeconds: Math.max(1, Math.floor(Number(firstTarget?.timeout) || 30)),
       targetMaxRetries: Math.max(0, Math.floor(Number(firstTarget?.maxRetries) || 0)),
       circuitFailureThreshold: Math.max(1, Math.floor(Number(modelCircuitBreaker?.failureThreshold) || 3)),
@@ -506,8 +507,6 @@ function uiToBackend(state: State): BackendConfig {
     publicName: chain.proxyModelName,
     enabled: chain.enabled,
     strategy: chain.strategy,
-    concurrency: Math.max(1, Math.min(64, Math.floor(Number(chain.concurrency) || 1))),
-    releaseDelayMs: Math.max(0, Math.min(3600, Math.floor(Number(chain.releaseDelaySeconds) || 0))) * 1000,
     circuitBreaker: {
       failureThreshold: Math.max(1, Math.floor(Number(chain.circuitFailureThreshold) || 3)),
       cooldownMinutes: Math.max(1, Math.floor(Number(chain.circuitCooldownMinutes) || 10)),

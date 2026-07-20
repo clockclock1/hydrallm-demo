@@ -13,6 +13,7 @@ import {
   Sun,
   TestTube,
 } from 'lucide-react';
+import { usePageNavigation } from '../hooks/usePageNavigation';
 import { useStore } from '../store';
 import type { Page } from '../types';
 import { cn } from '../utils/cn';
@@ -41,6 +42,7 @@ export default function Sidebar({
   onToggleTheme: () => void;
 }) {
   const { state, dispatch, loadConfig, saveConfig, logout } = useStore();
+  const navigateToPage = usePageNavigation();
   const collapsed = state.sidebarCollapsed;
   const busy = state.saveStatus === 'loading' || state.saveStatus === 'saving';
   const isCollapsed = !mobile && collapsed;
@@ -68,7 +70,7 @@ export default function Sidebar({
           <button
             key={page}
             onClick={() => {
-              dispatch({ type: 'SET_PAGE', page });
+              navigateToPage(page);
               onNavigate?.();
             }}
             className={cn(

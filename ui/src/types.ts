@@ -27,8 +27,6 @@ export interface FailoverChain {
   strategy: 'priority' | 'round-robin' | 'weighted' | 'latency-based';
   proxyModelName: string;
   proxyApiKey: string;
-  concurrency: number;
-  releaseDelaySeconds: number;
   targetTimeoutSeconds: number;
   targetMaxRetries: number;
   circuitFailureThreshold: number;
@@ -74,7 +72,6 @@ export interface ActiveThread {
   status: string;
   startedAt: number;
   updatedAt: number;
-  releaseAt: number;
   failedModels: string[];
   attemptErrors: Array<{
     target: string;
