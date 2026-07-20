@@ -1,3 +1,9 @@
 name = "hydrallm-demo"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "dist"
+
+# Cloudflare Pages SPA fallback —— 上游 HydraLLM UI 使用浏览器路由（history.pushState）
+# 所有 /ui/* 路由 fallback 到 /ui/index.html（React UI 入口）
+[[pages.routes]]
+route = "/ui/*"
+ destiny = "/ui/index.html"
