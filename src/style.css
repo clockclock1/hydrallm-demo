@@ -811,3 +811,49 @@ pre,
 .doc-page-bg .pointer-events-none {
   display: none !important;
 }
+
+/* ----------------------------------------------------------------- */
+/* 顶部导航栏首页 / 文档切换按钮样式                                    */
+/* 首页用 zinc + brand-400 配色，文档页用 vp-c-* 主题变量              */
+/* ----------------------------------------------------------------- */
+
+/* 标签按钮基础样式：统一的尺寸、字重与圆角 */
+.nav-tab {
+  border: 1px solid transparent;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+/* ---- 首页按钮（深色背景 + 强光晕场景） ---- */
+.nav-tab-active-home {
+  color: #fff;
+  background-color: rgba(60, 184, 255, 0.12);
+  border-color: rgba(60, 184, 255, 0.35);
+}
+
+.nav-tab-inactive-home {
+  color: #a1a1aa;
+  background-color: transparent;
+}
+
+.nav-tab-inactive-home:hover {
+  color: #f4f4f5;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- 文档页按钮（VitePress 深色主题场景） ---- */
+.nav-tab-active-doc {
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+  border-color: var(--vp-c-brand-1);
+}
+
+.nav-tab-inactive-doc {
+  color: var(--vp-c-text-2);
+  background-color: transparent;
+}
+
+.nav-tab-inactive-doc:hover {
+  color: var(--vp-c-text-1);
+  background-color: var(--vp-c-bg-soft);
+}

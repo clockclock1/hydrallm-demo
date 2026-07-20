@@ -64,36 +64,35 @@ onUnmounted(() => {
     <div class="relative mx-auto flex w-full max-w-[1160px] flex-col px-6 pb-20 pt-6">
       <!-- 顶部导航栏（极简，无外边框） -->
       <nav class="mb-12 flex items-center justify-between">
-        <a href="#/" class="flex items-center gap-2 text-sm font-semibold text-zinc-100 hover:text-brand-400 transition-colors">
+        <a
+          href="#/"
+          class="flex items-center gap-2 text-sm font-semibold transition-colors"
+          :class="route.name === 'docs'
+            ? 'text-[var(--vp-c-text-2)] hover:text-[var(--vp-c-brand-1)]'
+            : 'text-zinc-100 hover:text-brand-400'"
+        >
           <span class="i-lucide-arrow-left h-4 w-4" v-if="route.name === 'docs'" />
           <span v-else class="text-gradient text-lg font-extrabold tracking-tight">HydraLLM</span>
+          <span v-if="route.name === 'docs'" class="text-base font-bold tracking-tight">HydraLLM</span>
         </a>
-        <div class="flex items-center gap-6 text-sm">
+        <div class="flex items-center gap-1 text-sm">
           <button
             @click="navigateToHome"
             :class="[
-              'relative py-1 transition-colors duration-200',
-              route.name === 'home' ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+              'nav-tab relative px-3 py-1.5 rounded-md font-medium transition-all duration-200',
+              route.name === 'home' ? 'nav-tab-active-home' : 'nav-tab-inactive-home',
             ]"
           >
             首页
-            <span
-              v-if="route.name === 'home'"
-              class="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-brand-400"
-            />
           </button>
           <button
             @click="navigateToDocs"
             :class="[
-              'relative py-1 transition-colors duration-200',
-              route.name === 'docs' ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+              'nav-tab relative px-3 py-1.5 rounded-md font-medium transition-all duration-200',
+              route.name === 'docs' ? 'nav-tab-active-doc' : 'nav-tab-inactive-doc',
             ]"
           >
             文档
-            <span
-              v-if="route.name === 'docs'"
-              class="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full bg-brand-400"
-            />
           </button>
         </div>
       </nav>
