@@ -1,4 +1,0 @@
-# Cloudflare Pages SPA fallback —— 上游 HydraLLM UI 使用浏览器路由（history.pushState）
-# 每个页面有独立 URL：/ui/dashboard, /ui/providers, /ui/chains 等。
-# 刷新或直接访问这些 URL 时，需要 fallback 到 /ui/index.html 让 React 接管路由。
-/ui/*  /ui/index.html  200
