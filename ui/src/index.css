@@ -1217,6 +1217,209 @@ button:active {
   border: 1px solid rgba(125, 211, 252, 0.18) !important;
 }
 
+.uiverse-shell[data-theme="dark"] .chain-editor-modal .chain-editor-nav {
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(8, 47, 73, 0.5), rgba(46, 16, 101, 0.34)) !important;
+  border-color: rgba(125, 211, 252, 0.2) !important;
+}
+
+.uiverse-shell .chain-editor-tab,
+.uiverse-shell .chain-editor-model-card,
+.uiverse-shell .chain-editor-queue-card,
+.uiverse-shell .chain-editor-clear-button {
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease !important;
+}
+
+.uiverse-shell .chain-editor-tab:hover,
+.uiverse-shell .chain-editor-model-card:hover,
+.uiverse-shell .chain-editor-queue-card:hover {
+  transform: translateY(-1px);
+}
+
+.uiverse-shell .chain-editor-panel {
+  animation: chain-editor-panel-in 180ms ease both;
+}
+
+.uiverse-shell .chain-editor-model-card,
+.uiverse-shell .chain-editor-queue-card,
+.uiverse-shell .chain-editor-empty-state {
+  animation: chain-editor-item-in 180ms ease both;
+}
+
+.uiverse-shell .chain-editor-model-library,
+.uiverse-shell .chain-editor-queue-panel,
+.uiverse-shell .chain-editor-column-scroll {
+  min-height: 0;
+}
+
+.uiverse-shell .chain-editor-column-scroll {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.uiverse-shell .chain-editor-queue-actions {
+  width: 100%;
+}
+
+.uiverse-shell .chain-editor-action-icon {
+  position: relative;
+  z-index: 3;
+  display: inline-flex !important;
+  width: 1rem;
+  min-width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  color: currentColor !important;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.uiverse-shell .chain-editor-action-icon svg {
+  display: block !important;
+  width: 100%;
+  height: 100%;
+  opacity: 1 !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.uiverse-shell .chain-editor-reorder-control,
+.uiverse-shell .chain-editor-delete-button {
+  width: 2rem;
+  min-width: 2rem;
+}
+
+.uiverse-shell .chain-editor-delete-button,
+.uiverse-shell .chain-editor-reorder-control .queue-icon-button {
+  padding: 0 !important;
+}
+
+.uiverse-shell .chain-editor-clear-button,
+.uiverse-shell .chain-editor-delete-button,
+.uiverse-shell .chain-editor-reorder-control .queue-icon-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.uiverse-shell .chain-editor-clear-button::before,
+.uiverse-shell .chain-editor-delete-button::before,
+.uiverse-shell .chain-editor-reorder-control .queue-icon-button::before {
+  content: none !important;
+  display: none !important;
+}
+
+.uiverse-shell .chain-editor-queue-actions svg,
+.uiverse-shell .chain-editor-clear-button svg {
+  display: block !important;
+  opacity: 1 !important;
+  color: currentColor;
+  stroke: currentColor !important;
+}
+
+.uiverse-shell .chain-editor-model-card:hover {
+  border-color: rgba(34, 211, 238, 0.38) !important;
+  box-shadow: 0 10px 24px rgba(8, 47, 73, 0.12) !important;
+}
+
+.uiverse-shell .chain-editor-queue-card:hover {
+  border-color: rgba(59, 130, 246, 0.34) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-section-note {
+  background:
+    linear-gradient(115deg, rgba(8, 47, 73, 0.76), rgba(15, 23, 42, 0.94) 46%, rgba(46, 16, 101, 0.46)) !important;
+  border-color: rgba(103, 232, 249, 0.36) !important;
+  color: #e5fbff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 28px rgba(2, 6, 23, 0.2) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-section-note .text-slate-800 {
+  color: #eef7ff !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-section-note .text-slate-500 {
+  color: #9fb5d6 !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-provider-picker {
+  background:
+    linear-gradient(135deg, rgba(8, 47, 73, 0.54), rgba(15, 23, 42, 0.88)) !important;
+  border-color: rgba(125, 211, 252, 0.24) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-model-library,
+.uiverse-shell[data-theme="dark"] .chain-editor-queue-panel {
+  background:
+    linear-gradient(135deg, rgba(8, 47, 73, 0.5), rgba(15, 23, 42, 0.9)) !important;
+  border-color: rgba(125, 211, 252, 0.22) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-model-card,
+.uiverse-shell[data-theme="dark"] .chain-editor-queue-card {
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.72)) !important;
+  border-color: rgba(125, 211, 252, 0.2) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-reorder-control {
+  background: rgba(2, 6, 23, 0.68) !important;
+  border-color: rgba(125, 211, 252, 0.2) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-model-card:hover,
+.uiverse-shell[data-theme="dark"] .chain-editor-queue-card:hover {
+  border-color: rgba(103, 232, 249, 0.44) !important;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.28) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-queue-list {
+  border-color: rgba(125, 211, 252, 0.2) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-empty-state {
+  border-color: rgba(125, 211, 252, 0.22) !important;
+  background: rgba(2, 6, 23, 0.28) !important;
+}
+
+.uiverse-shell[data-theme="dark"] .chain-editor-provider-picker button::before,
+.uiverse-shell[data-theme="dark"] .chain-editor-nav button::before,
+.uiverse-shell[data-theme="dark"] .chain-editor-model-card::before,
+.uiverse-shell[data-theme="dark"] .chain-editor-clear-button::before {
+  content: none !important;
+}
+
+@keyframes chain-editor-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chain-editor-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .uiverse-shell .chain-flow-entry-content {
   display: inline-flex;
   align-items: center;

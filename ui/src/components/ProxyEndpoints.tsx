@@ -152,6 +152,21 @@ export default function ProxyEndpoints() {
                     {copiedId === 'ep-' + chain.id ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
                   </button>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 w-16 flex-shrink-0">Responses:</span>
+                  <div className="min-w-0 flex-1">
+                    <code className="block truncate text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">
+                      {baseEndpoint}/responses
+                    </code>
+                    <p className="mt-1 truncate text-[10px] text-slate-400">also accepts {baseEndpoint}/response</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyToClipboard(`${baseEndpoint}/responses`, 'responses-' + chain.id); }}
+                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    {copiedId === 'responses-' + chain.id ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  ArrowDownCircle,
   Plus,
   X,
   GitBranch,
@@ -12,6 +13,13 @@ import {
   Timer,
   RotateCcw,
   ShieldAlert,
+  Settings2,
+  ListChecks,
+  Search,
+  Database,
+  Power,
+  GripVertical,
+  Trash2,
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from '../store';
@@ -72,6 +80,8 @@ function ChainEditor({
   const [circuitFailureThreshold, setCircuitFailureThreshold] = useState(chain?.circuitFailureThreshold || 3);
   const [circuitCooldownMinutes, setCircuitCooldownMinutes] = useState(chain?.circuitCooldownMinutes || 10);
   const [models, setModels] = useState<FailoverModel[]>(() => normalizeQueue(chain?.models || []));
+  const [activeSection, setActiveSection] = useState<'settings' | 'models'>('settings');
+  const [modelQuery, setModelQuery] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const queueRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +99,27 @@ function ChainEditor({
       timeout: 30,
       enabled: true,
     }]));
+  };
+
+  const clearModels = () => {
+    setModels([]);
+  };
+
+  const handleRepositoryDragStart = (event: React.DragEvent, providerId: string, modelName: string) => {
+    event.dataTransfer.setData('application/json', JSON.stringify({ source: 'repository', providerId, modelName }));
+    event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleDropOnQueue = (event: React.DragEvent) => {
+    event.preventDefault();
+    try {
+      const data = JSON.parse(event.dataTransfer.getData('application/json') || '{}');
+      if (data.source === 'repository' && data.providerId && data.modelName) {
+        addModel(String(data.providerId), String(data.modelName));
+      }
+    } catch {
+      // Ignore invalid drag payloads from outside the editor.
+    }
   };
 
   const removeModel = (idx: number) => {
@@ -208,10 +239,25 @@ function ChainEditor({
   };
 
   const orderedModels = normalizeQueue(models);
+  const selectedModelKeys = new Set(orderedModels.map(modelQueueKey));
+  const normalizedModelQuery = modelQuery.trim().toLowerCase();
+  const availableModels = state.providers.flatMap(provider =>
+    provider.models
+      .filter(model => !selectedModelKeys.has(`${provider.id}:${model}`))
+      .filter(model => {
+        if (!normalizedModelQuery) return true;
+        return (
+          model.toLowerCase().includes(normalizedModelQuery) ||
+          provider.name.toLowerCase().includes(normalizedModelQuery) ||
+          provider.baseUrl.toLowerCase().includes(normalizedModelQuery)
+        );
+      })
+      .map(model => ({ provider, model }))
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-2 pt-4 sm:p-4 sm:pt-6" onClick={onClose}>
-      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col rounded-xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl" onClick={e => e.stopPropagation()}>
+      <div className="chain-editor-modal my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-6xl flex-col rounded-xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
           <h3 className="font-semibold text-slate-800">{chain ? '编辑故障转移链' : '创建故障转移链'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -219,7 +265,52 @@ function ChainEditor({
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <nav className="chain-editor-nav flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50/60 p-3">
+            <button
+              type="button"
+              onClick={() => setActiveSection('settings')}
+              className={cn(
+                'chain-editor-tab flex min-w-[180px] items-center gap-3 rounded-lg border px-3 py-3 text-left transition-all',
+                activeSection === 'settings'
+                  ? 'border-blue-200 bg-white text-blue-700 shadow-sm'
+                  : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
+              )}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Settings2 size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">链设置</span>
+                <span className="block truncate text-xs opacity-75">名称、策略、超时和熔断</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('models')}
+              className={cn(
+                'chain-editor-tab flex min-w-[180px] items-center gap-3 rounded-lg border px-3 py-3 text-left transition-all',
+                activeSection === 'models'
+                  ? 'border-cyan-200 bg-white text-cyan-700 shadow-sm'
+                  : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
+              )}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600">
+                <ListChecks size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">选择模型</span>
+                <span className="block truncate text-xs opacity-75">{orderedModels.length} 个目标模型</span>
+              </span>
+            </button>
+          </nav>
+
+          <div className={cn(
+            'min-h-0 flex-1 p-4 sm:p-6',
+            activeSection === 'models' ? 'flex overflow-hidden' : 'overflow-y-auto'
+          )}>
+            {activeSection === 'settings' ? (
+              <div key="settings" className="chain-editor-panel space-y-5">
           {/* Basic Info */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -366,141 +457,210 @@ function ChainEditor({
             <p className="text-xs text-slate-400 mt-1">{strategyLabels[strategy].desc}</p>
           </div>
 
-          {/* Add Model */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">添加模型到转移链</label>
-            <div className="border border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50/50">
-              {state.providers.map(provider => (
-                <div key={provider.id}>
-                  <p className="text-xs text-slate-500 mb-1 font-medium">{provider.name}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {provider.models.map(model => {
-                      const isAdded = orderedModels.some(m => m.providerId === provider.id && m.modelName === model);
-                      return (
-                        <button
-                          key={model}
-                          onClick={() => addModel(provider.id, model)}
-                          disabled={isAdded}
-                          className={cn(
-                            'text-xs px-2.5 py-1 rounded-md border transition-all',
-                            isAdded
-                              ? 'bg-blue-50 border-blue-200 text-blue-400 cursor-not-allowed'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50'
-                          )}
-                        >
-                          {isAdded ? '✓ ' : '+ '}{model}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Model Chain */}
-          {orderedModels.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                转移链配置 ({orderedModels.length} 个模型)
-              </label>
-              <div ref={queueRef} className="space-y-2">
-                {orderedModels.map((model, idx) => {
-                  const provider = state.providers.find(p => p.id === model.providerId);
-                  return (
-                    <div
-                      key={modelQueueKey(model)}
-                      data-queue-index={idx}
-                      className={cn(
-                        'border rounded-lg p-3 transition-all select-none',
-                        model.enabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50 opacity-60',
-                        draggedIndex === idx && 'scale-[0.99] opacity-50',
-                        dragOverIndex === idx && draggedIndex !== idx && 'border-blue-300 bg-blue-50/40 shadow-sm'
-                      )}
-                    >
-                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start mb-3">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <button
-                            type="button"
-                            onPointerDown={event => handleDragStart(event, idx)}
-                            onPointerUp={resetDragState}
-                            onPointerCancel={resetDragState}
-                            className="queue-icon-button inline-flex h-7 w-7 touch-none flex-shrink-0 cursor-grab items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 active:cursor-grabbing"
-                            title="拖动调整顺序"
-                            aria-label={`调整 ${model.modelName} 的顺序`}
-                          >
-                            <span className="fallback-icon" aria-hidden="true">::</span>
-                          </button>
-                          <span className={cn(
-                            'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
-                            idx === 0 ? 'bg-blue-100 text-blue-600' :
-                            idx === 1 ? 'bg-amber-100 text-amber-600' :
-                            'bg-slate-100 text-slate-500'
-                          )}>
-                            {idx + 1}
-                          </span>
-                          <div className="min-w-0">
-                            <span className="block truncate break-all text-sm font-mono font-medium text-slate-700">{model.modelName}</span>
-                            <span className="text-xs text-slate-400 ml-2">{provider?.name}</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                          <button
-                            type="button"
-                            onClick={() => moveModel(idx, -1)}
-                            disabled={idx === 0}
-                            className="queue-icon-button inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="上移"
-                            aria-label={`上移 ${model.modelName}`}
-                          >
-                            <span className="fallback-icon" aria-hidden="true">^</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveModel(idx, 1)}
-                            disabled={idx === orderedModels.length - 1}
-                            className="queue-icon-button inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="下移"
-                            aria-label={`下移 ${model.modelName}`}
-                          >
-                            <span className="fallback-icon" aria-hidden="true">v</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateModel(idx, { enabled: !model.enabled })}
-                            className={cn(
-                              'inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors',
-                              model.enabled
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
-                            )}
-                            title={model.enabled ? '点击禁用模型' : '点击启用模型'}
-                          >
-                            <span className="button-content-layer">
-                              <span className="fallback-icon" aria-hidden="true">{model.enabled ? 'ON' : 'X'}</span>
-                              {model.enabled ? '已启用' : '已禁用'}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeModel(idx)}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 shadow-sm transition-colors hover:bg-red-100"
-                            title="删除模型"
-                          >
-                            <span className="button-content-layer">
-                              <span className="fallback-icon" aria-hidden="true">X</span>
-                              删除
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div key="models" className="chain-editor-panel grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(280px,0.82fr)_minmax(0,1.18fr)]">
+                <section className="chain-editor-model-library flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <Database size={16} className="text-violet-500" />
+                      可用模型 ({availableModels.length})
+                    </h4>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                      点击或拖拽加入
+                    </span>
+                  </div>
+
+                  <div className="relative mt-3">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={modelQuery}
+                      onChange={event => setModelQuery(event.target.value)}
+                      className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+                      placeholder="搜索模型或提供商"
+                    />
+                  </div>
+
+                  <div className="chain-editor-column-scroll mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                    {availableModels.map(({ provider, model }, index) => (
+                      <button
+                        key={`${provider.id}:${model}`}
+                        type="button"
+                        draggable
+                        onDragStart={event => handleRepositoryDragStart(event, provider.id, model)}
+                        onClick={() => addModel(provider.id, model)}
+                        className="chain-editor-model-card group flex w-full cursor-grab items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition-all active:cursor-grabbing"
+                        style={{ animationDelay: `${Math.min(index, 14) * 18}ms` }}
+                        title="点击或拖拽加入故障转移链"
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300 transition-colors group-hover:bg-cyan-500" />
+                          <span className="min-w-0">
+                            <span className="block truncate font-mono text-sm font-medium text-slate-800">{model}</span>
+                            <span className="block truncate text-xs text-slate-400">{provider.name}</span>
+                          </span>
+                        </div>
+                        <span className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition-colors group-hover:border-cyan-300 group-hover:text-cyan-700">
+                          + 加入
+                        </span>
+                      </button>
+                    ))}
+
+                    {!availableModels.length && (
+                      <div className="chain-editor-empty-state rounded-xl border border-dashed border-slate-200 py-12 text-center text-xs text-slate-400">
+                        <Database size={26} className="mx-auto mb-2 text-slate-300" />
+                        没有可加入的模型
+                      </div>
+                    )}
+                  </div>
+                </section>
+                <section className="chain-editor-queue-panel flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <Layers size={16} className="text-indigo-500" />
+                        故障转移链中的模型
+                      </h4>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">优先级从上到下依次降低，可拖拽或使用右侧按钮调整顺序。</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearModels}
+                      disabled={!orderedModels.length}
+                      className="chain-editor-clear-button inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <span className="chain-editor-action-icon" aria-hidden="true">
+                        <Trash2 size={14} />
+                      </span>
+                      清空链
+                    </button>
+                  </div>
+
+                  <div
+                    ref={queueRef}
+                    onDragOver={event => event.preventDefault()}
+                    onDrop={handleDropOnQueue}
+                    className={cn(
+                      'chain-editor-queue-list chain-editor-column-scroll mt-4 min-h-0 flex-1 rounded-xl transition-all',
+                      orderedModels.length
+                        ? 'space-y-3 overflow-y-auto pr-1'
+                        : 'flex items-center justify-center border border-dashed border-slate-200 bg-slate-50/50 p-8'
+                    )}
+                  >
+                    {!orderedModels.length ? (
+                      <div className="chain-editor-empty-state max-w-sm text-center">
+                        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
+                          <ArrowDownCircle size={22} />
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-slate-700">故障转移链为空</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-400">从左侧模型库点击模型，或把模型卡片拖到这里来构建调用顺序。</p>
+                      </div>
+                    ) : (
+                      orderedModels.map((model, idx) => {
+                        const provider = state.providers.find(p => p.id === model.providerId);
+                        return (
+                          <div
+                            key={modelQueueKey(model)}
+                            data-queue-index={idx}
+                            className={cn(
+                              'chain-editor-queue-card group rounded-xl border p-3 transition-all select-none',
+                              model.enabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50 opacity-60',
+                              draggedIndex === idx && 'scale-[0.99] opacity-50',
+                              dragOverIndex === idx && draggedIndex !== idx && 'border-blue-300 bg-blue-50/40 shadow-sm'
+                            )}
+                          >
+                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,auto)] lg:items-center">
+                              <div className="flex min-w-0 items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onPointerDown={event => handleDragStart(event, idx)}
+                                  onPointerUp={resetDragState}
+                                  onPointerCancel={resetDragState}
+                                  className="queue-icon-button inline-flex h-8 w-8 touch-none flex-shrink-0 cursor-grab items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 active:cursor-grabbing"
+                                  title="拖动调整顺序"
+                                  aria-label={`调整 ${model.modelName} 的顺序`}
+                                >
+                                  <span className="chain-editor-action-icon" aria-hidden="true">
+                                    <GripVertical size={15} />
+                                  </span>
+                                </button>
+                                <span className={cn(
+                                  'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
+                                  idx === 0 ? 'bg-blue-100 text-blue-600' :
+                                  idx === 1 ? 'bg-amber-100 text-amber-600' :
+                                  'bg-slate-100 text-slate-500'
+                                )}>
+                                  {idx + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <span className="block truncate break-all font-mono text-sm font-medium text-slate-800">{model.modelName}</span>
+                                  <span className="block truncate text-xs text-slate-400">{provider?.name}</span>
+                                </div>
+                              </div>
+                              <div className="chain-editor-queue-actions grid grid-cols-[minmax(6.25rem,1fr)_2rem_2rem] items-center gap-2 lg:justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => updateModel(idx, { enabled: !model.enabled })}
+                                  className={cn(
+                                    'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-all',
+                                    model.enabled
+                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                  )}
+                                  title={model.enabled ? '点击禁用模型' : '点击启用模型'}
+                                >
+                                  <span className="chain-editor-action-icon" aria-hidden="true">
+                                    <Power size={13} />
+                                  </span>
+                                  {model.enabled ? '已启用' : '已禁用'}
+                                </button>
+                                <div className="chain-editor-reorder-control flex flex-col gap-0.5 rounded-md border border-slate-200 bg-slate-50 p-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveModel(idx, -1)}
+                                    disabled={idx === 0}
+                                    className="queue-icon-button inline-flex h-5 w-6 items-center justify-center rounded text-slate-500 transition-all hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                    title="上移"
+                                    aria-label={`上移 ${model.modelName}`}
+                                  >
+                                    <span className="chain-editor-action-icon" aria-hidden="true">
+                                      <ChevronUp size={14} />
+                                    </span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveModel(idx, 1)}
+                                    disabled={idx === orderedModels.length - 1}
+                                    className="queue-icon-button inline-flex h-5 w-6 items-center justify-center rounded text-slate-500 transition-all hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                    title="下移"
+                                    aria-label={`下移 ${model.modelName}`}
+                                  >
+                                    <span className="chain-editor-action-icon" aria-hidden="true">
+                                      <ChevronDown size={14} />
+                                    </span>
+                                  </button>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeModel(idx)}
+                                  className="chain-editor-delete-button inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 shadow-sm transition-all hover:bg-red-100"
+                                  title="删除模型"
+                                >
+                                  <span className="chain-editor-action-icon" aria-hidden="true">
+                                    <Trash2 size={14} />
+                                  </span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
