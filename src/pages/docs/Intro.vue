@@ -18,7 +18,7 @@ import DocContainer from '../../components/DocContainer.vue'
     </p>
     <ul>
       <li><strong>着陆页</strong>（<code>/</code>）— Vue 3 项目介绍页</li>
-      <li><strong>交互演示</strong>（<code>/ui/</code>）— React UI + fetch 拦截器模拟 API</li>
+      <li><strong>交互演示</strong>（<code>/ui/</code>）— React UI + fetch 拦截器模拟 API，自带 8 个管理页面（仪表盘、模型提供商、模型测试、故障转移链、模型统计、代理端点、实时状况、请求日志）</li>
     </ul>
 
     <DocContainer type="tip" title="一句话总结">
@@ -29,6 +29,7 @@ import DocContainer from '../../components/DocContainer.vue'
       本演示站不含真实后端，<code>/ui/</code> 下的所有 <code>/api/*</code> 请求由内嵌 fetch 拦截器返回预设模拟数据。
       上游 HydraLLM 是可独立部署的完整服务（见
       <a href="https://github.com/clockclock1/HydraLLM" target="_blank" rel="noopener">GitHub 仓库</a>）。
+      UI 目录 (<code>ui/src/</code>) 通过 GitHub Actions 每小时自动同步上游最新代码，因此本演示始终反映上游的当前形态。
     </DocContainer>
   </div>
 </template>

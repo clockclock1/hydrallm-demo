@@ -23,10 +23,13 @@ import { stack, endpoints } from '../data/sections'
 
   <!-- API 端点参考 -->
   <section class="mb-16">
-    <h2 class="mb-8 text-center text-2xl font-bold tracking-tight">
-      <span class="text-gradient">OpenAI 兼容 API</span>
+    <h2 class="mb-2 text-center text-2xl font-bold tracking-tight">
+      <span class="text-gradient">API 参考</span>
     </h2>
-    <div class="mx-auto max-w-[680px] overflow-hidden rounded-2xl border border-white/10">
+    <p class="mb-8 text-center text-sm text-zinc-500">
+      OpenAI 兼容代理端点 + 管理端点（需 <code class="font-mono text-xs">x-admin-session</code>）
+    </p>
+    <div class="mx-auto max-w-[760px] overflow-hidden rounded-2xl border border-white/10">
       <div
         v-for="(ep, i) in endpoints"
         :key="ep.path"
@@ -43,7 +46,7 @@ import { stack, endpoints } from '../data/sections'
         <!-- 路径 -->
         <code class="flex-1 font-mono text-xs text-zinc-300">{{ ep.path }}</code>
         <!-- 描述 -->
-        <span class="hidden text-right text-xs text-zinc-500 sm:block sm:w-56">{{ ep.description }}</span>
+        <span class="hidden text-right text-xs text-zinc-500 sm:block sm:w-64">{{ ep.description }}</span>
       </div>
     </div>
   </section>

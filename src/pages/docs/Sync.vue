@@ -39,14 +39,25 @@ curl -X POST \\
     <ol>
       <li>通过 GitHub API 获取上游 <code>HydraLLM</code> 的 HEAD SHA</li>
       <li>从本仓库最近一次同步 commit 信息解析上次 SHA，相同则跳过</li>
-      <li>浅克隆上游仓库，用 <code>cp -r</code> 覆盖 <code>ui/src/</code>（保留 <code>vite.config.ts</code> 等定制文件）</li>
-      <li>若有 diff，提交 <code>chore(sync): ui/ synced from upstream HydraLLM@&lt;sha&gt;</code></li>
+      <li>浅克隆上游仓库，用 <code>cp -r</code> 覆盖 <code>ui/src/</code>（保留 <code>vite.config.ts</code>、<code>index.html</code>、<code>package.json</code> 等定制文件）</li>
+      <li>若 <code>ui/src/</code> 有 diff，提交 <code>chore(sync): ui/ synced from upstream HydraLLM&#64;sha</code></li>
       <li>推送到 <code>main</code>，Cloudflare Pages 自动重新部署</li>
     </ol>
 
+    <h2>同步覆盖的内容<a class="header-anchor" href="#scope" aria-label="Permalink"></a></h2>
+    <p>
+      <code>ui/src/</code> 目录整体覆盖，目前包含上游 HydraLLM 当前版本的：
+    </p>
+    <ul>
+      <li><code>App.tsx</code> / <code>main.tsx</code> / <code>store.tsx</code> / <code>types.ts</code> — 应用入口、状态管理、类型定义</li>
+      <li><code>components/</code> — 12 个 UI 组件（Sidebar、Dashboard、Login、Loading、FailoverChains、LiveStatus、Logs、ModelStats、ModelTests、Providers、ProxyEndpoints、AnimatedGlyph）</li>
+      <li><code>pages/</code> — 8 个独立路由页面（与 Sidebar 导航对应）</li>
+      <li><code>hooks/usePageNavigation.ts</code> — 页面切换 hook（封装 <code>history.pushState</code>/<code>popstate</code>）</li>
+      <li><code>index.css</code> / <code>utils/cn.ts</code> — 全局样式与 <code>clsx + tailwind-merge</code> 工具</li>
+    </ul>
     <DocContainer type="warning" title="定制文件不会被覆盖">
-      <code>ui/vite.config.ts</code>、<code>ui/index.html</code>、<code>ui/package.json</code>
-      这三份针对 Cloudflare Pages 演示环境定制的文件不会随上游同步被覆盖，仅 <code>ui/src/</code> 会被覆盖。
+      <code>ui/vite.config.ts</code>、<code>ui/index.html</code>、<code>ui/package.json</code>、<code>ui/public/</code>
+      这些针对 Cloudflare Pages 演示环境定制的文件不会随上游同步被覆盖，仅 <code>ui/src/</code> 会被覆盖。
     </DocContainer>
   </div>
 </template>

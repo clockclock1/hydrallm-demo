@@ -6,10 +6,11 @@
 
 | 页面 | 路径 | 说明 |
 |---|---|---|
-| **着陆页** | `/` | Vue 3 项目介绍页（特性、技术栈、故障转移流程） |
-| **交互演示** | `/ui/` | 真正的 HydraLLM 管理界面（React UI + fetch 拦截器 Mock API） |
+| **着陆页** | `/` | Vue 3 项目介绍页（含 8 个管理页面导航卡片） |
+| **交互演示** | `/ui/dashboard` | HydraLLM 管理界面（React UI + fetch 拦截器 Mock API），共 8 个管理页面 |
 
 > 🧪 交互演示页通过 fetch 拦截器（内嵌在 `index.html`）拦截所有 `/api/*` 请求，返回模拟数据，无需后端即可体验完整功能。
+> 上游 HydraLLM UI 使用**浏览器路由**（`history.pushState`），直接访问 `/ui/dashboard`、`/ui/providers` 等 URL 均可工作。
 
 **上游项目**：[clockclock1/HydraLLM](https://github.com/clockclock1/HydraLLM)
 
@@ -70,15 +71,25 @@ hydrallm-demo/
 ├── .github/workflows/
 │   └── sync-upstream.yml         # 每小时整点（UTC）同步上游 HydraLLM ui/src
 ├── src/                          # Vue 3 着陆页源码
-│   ├── components/               # 文档布局、代码块、自定义容器等
-│   ├── pages/docs/               # 文档站 8 个章节组件
+│   ├── components/
+│   │   ├── DocsLayout.vue        # 文档页三栏布局（侧边栏 + 内容 + 导航）
+│   │   ├── DashboardPages.vue    # 8 个管理页面导航卡片（新增）
+│   │   └── ...
+│   ├── pages/docs/               # 文档站 9 个章节组件
 │   └── data/sections.ts          # 站点文案 + 文档导航元数据
 ├── ui/                           # HydraLLM React UI（自动同步上游）
-│   ├── src/                      # 同步自上游 HydraLLM/ui/src
-│   ├── public/favicon.svg
+│   ├── src/
+│   │   ├── App.tsx               # 应用入口 + 浏览器路由（history.pushState）
+│   │   ├── components/            # 12 个 UI 组件
+│   │   ├── pages/                # 8 个独立路由页面（DashboardPage 等）
+│   │   ├── hooks/                # usePageNavigation（封装路由 + dispatch）
+│   │   └── store.tsx             # 状态管理（含 hasUnsavedChanges）
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   └── _redirects            # Cloudflare Pages SPA fallback
 │   ├── index.html                # 含 fetch 拦截器 Mock API + 演示横幅
 │   ├── package.json
-│   └── vite.config.ts            # base: '/ui/'
+│   └── vite.config.ts            # base: '/ui/', singlefile 构建
 ├── public/favicon.svg
 ├── index.html
 ├── vite.config.ts
@@ -96,6 +107,7 @@ hydrallm-demo/
 | 框架 | Vue 3 + TypeScript | React 19 + TypeScript |
 | 构建 | Vite 6 | Vite 7 (singlefile) |
 | 样式 | UnoCSS + Lucide Icons | Tailwind CSS v4 |
+| 路由 | —（hash 路由） | 浏览器路由（history.pushState） |
 | Mock API | — | fetch 拦截器（同源 /api/*） |
 
 ---

@@ -12,6 +12,8 @@ export const site = {
     demoRepo: 'https://github.com/clockclock1/hydrallm-demo',
     license: 'Apache-2.0',
   },
+  // 演示 UI 入口 —— 上游 HydraLLM UI 使用浏览器路由，默认页是 /dashboard
+  demoUrl: '/ui/dashboard',
 } as const
 
 export interface Feature {
@@ -107,9 +109,31 @@ export const stack: Stack[] = [
 
 export const stats = [
   { value: '4', label: '调度策略' },
-  { value: '0', label: '业务代码改动' },
+  { value: '8', label: '管理页面' },
   { value: '∞', label: '备选目标层数' },
   { value: 'SSE', label: '原样透传' },
+]
+
+/**
+ * 管理 UI 页面清单 —— 与上游 HydraLLM React UI 的 sidebar 导航对应。
+ * 见 ui/src/components/Sidebar.tsx 的 navItems。
+ */
+export interface DashboardPage {
+  id: string
+  label: string
+  icon: string
+  description: string
+}
+
+export const dashboardPages: DashboardPage[] = [
+  { id: 'dashboard',    label: '仪表盘',      icon: 'i-lucide-layout-dashboard', description: '总览运营指标与配置健康状况' },
+  { id: 'providers',     label: '模型提供商',   icon: 'i-lucide-server',          description: '管理上游 baseURL / API Key / 模型清单' },
+  { id: 'model-tests',   label: '模型测试',    icon: 'i-lucide-flask-conical',   description: '探测 text / vision / tool 三种能力' },
+  { id: 'chains',        label: '故障转移链',   icon: 'i-lucide-git-branch',      description: '为每个代理模型配置有序的备选目标' },
+  { id: 'model-stats',  label: '模型统计',    icon: 'i-lucide-bar-chart-3',     description: '按通道与模型维度查看请求分布' },
+  { id: 'endpoints',     label: '代理端点',    icon: 'i-lucide-link',            description: '查看对外暴露的 OpenAI 兼容端点' },
+  { id: 'live-status',   label: '实时状况',    icon: 'i-lucide-activity',         description: '观察活跃线程、熔断状态与切换过程' },
+  { id: 'logs',          label: '请求日志',    icon: 'i-lucide-scroll-text',      description: '逐条回溯故障转移与最终命中目标' },
 ]
 
 export interface Endpoint {
@@ -119,18 +143,20 @@ export interface Endpoint {
 }
 
 export const endpoints: Endpoint[] = [
-  { method: 'GET', path: '/v1/models', description: '获取所有可用的代理模型列表' },
-  {
-    method: 'POST',
-    path: '/v1/chat/completions',
-    description: '聊天补全 —— 自动故障转移、流式透传、工具调用',
-  },
-  { method: 'GET', path: '/health', description: '健康检查与存活探测' },
-  {
-    method: 'GET',
-    path: '/admin/config',
-    description: '读取当前配置（需管理员令牌）',
-  },
+  // OpenAI 兼容代理端点
+  { method: 'GET',  path: '/v1/models',          description: '获取所有可用的代理模型列表' },
+  { method: 'POST', path: '/v1/chat/completions', description: '聊天补全 —— 自动故障转移、流式透传、工具调用' },
+  { method: 'POST', path: '/v1/embeddings',       description: 'Embedding 请求（如果上游支持）' },
+  { method: 'GET',  path: '/health',              description: '健康检查与存活探测' },
+  // 管理端点（需 x-admin-session）
+  { method: 'POST', path: '/api/login',                       description: '管理员登录（body: {token}）' },
+  { method: 'GET',  path: '/api/config',                      description: '读取当前配置（需管理员会话）' },
+  { method: 'POST', path: '/api/config',                      description: '保存配置并刷新运行时' },
+  { method: 'GET',  path: '/api/stats',                       description: '实时统计 —— 1s 轮询，含活跃线程' },
+  { method: 'POST', path: '/api/providers/health',            description: '批量供应商健康检查' },
+  { method: 'POST', path: '/api/model-tests/run',             description: '运行模型能力测试（text/vision/tool）' },
+  { method: 'POST', path: '/api/model-source/preview',        description: '预览远程模型列表（不保存配置）' },
+  { method: 'POST', path: '/api/model-source/refresh',       description: '刷新远程模型来源（拉取最新模型）' },
 ]
 
 /* ------------------------------------------------------------------ */

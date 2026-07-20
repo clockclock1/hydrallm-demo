@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { site, stats } from '../data/sections'
 </script>
-
 <template>
   <header class="anim-float mb-16 flex flex-col items-center text-center">
     <!-- Logo + 项目名 -->
@@ -69,7 +68,7 @@ import { site, stats } from '../data/sections'
         源码
       </a>
       <a
-        href="/ui/"
+        :href="site.demoUrl"
         target="_blank"
         rel="noopener"
         class="btn-primary px-6 py-2.5 text-sm font-semibold"

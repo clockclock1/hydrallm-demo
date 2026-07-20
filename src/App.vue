@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import HeroSection from './components/HeroSection.vue'
 import FeaturesGrid from './components/FeaturesGrid.vue'
 import DemoFlow from './components/DemoFlow.vue'
+import DashboardPages from './components/DashboardPages.vue'
 import StackBadges from './components/StackBadges.vue'
 import FooterSection from './components/FooterSection.vue'
 import DocsPage from './pages/DocsPage.vue'
@@ -103,6 +104,7 @@ onUnmounted(() => {
           <HeroSection />
           <FeaturesGrid />
           <DemoFlow />
+          <DashboardPages />
           <StackBadges />
         </template>
         <template v-else>
