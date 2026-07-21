@@ -88,6 +88,7 @@ export interface LogEntry {
   chainName: string;
   originalModel: string;
   failedModels: string[];
+  failedModelErrors?: { model: string; error: string }[];
   finalModel: string;
   status: 'success' | 'failed';
   latency: number;

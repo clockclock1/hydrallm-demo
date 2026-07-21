@@ -78,6 +78,7 @@ interface BackendStats {
     chainName: string;
     originalModel: string;
     failedModels: string[];
+    failedModelErrors?: { model: string; error: string }[];
     finalModel: string;
     status: 'success' | 'failed';
     latency: number;
@@ -407,6 +408,12 @@ function applyStatsToState(state: State, stats: BackendStats): State {
       chainName: log.chainName,
       originalModel: log.originalModel,
       failedModels: log.failedModels || [],
+      failedModelErrors: Array.isArray(log.failedModelErrors)
+        ? log.failedModelErrors.map(item => ({
+            model: String(item.model || ''),
+            error: String(item.error || ''),
+          })).filter(item => item.model || item.error)
+        : [],
       finalModel: log.finalModel,
       status: log.status,
       latency: log.latency,
@@ -532,6 +539,12 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
     chainName: log.chainName,
     originalModel: log.originalModel,
     failedModels: log.failedModels || [],
+    failedModelErrors: Array.isArray(log.failedModelErrors)
+      ? log.failedModelErrors.map(item => ({
+          model: String(item.model || ''),
+          error: String(item.error || ''),
+        })).filter(item => item.model || item.error)
+      : [],
     finalModel: log.finalModel,
     status: log.status,
     latency: log.latency,

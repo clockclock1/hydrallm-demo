@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
-import type { LogSettings } from '../types';
+import type { LogEntry, LogSettings } from '../types';
 import { cn } from '../utils/cn';
 
 const defaultLogSettings: LogSettings = {
@@ -19,9 +19,45 @@ const defaultLogSettings: LogSettings = {
   maxBytes: 10 * 1024 * 1024,
   maxErrorChars: 65536,
 };
+const errorPreviewLimit = 180;
 
 function bytesToMb(bytes: number) {
   return Math.max(1, Math.round((Number(bytes) || defaultLogSettings.maxBytes) / 1024 / 1024));
+}
+
+function modelErrorFor(log: LogEntry, model: string) {
+  return (log.failedModelErrors || []).find(item => item.model === model && item.error);
+}
+
+function logErrorDetails(log: LogEntry) {
+  const modelErrors = (log.failedModelErrors || [])
+    .filter(item => item.model || item.error)
+    .map(item => `${item.model || 'target'}:\n${item.error || 'unknown error'}`)
+    .join('\n\n');
+  if (modelErrors && log.error && !modelErrors.includes(log.error)) {
+    return `${modelErrors}\n\n${log.error}`;
+  }
+  return modelErrors || log.error || '';
+}
+
+function errorPreview(error: string) {
+  const firstLine = error
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .find(Boolean) || 'unknown error';
+  const preview = firstLine.replace(/\s+/g, ' ');
+  return preview.length > errorPreviewLimit ? `${preview.slice(0, errorPreviewLimit - 1)}...` : preview;
+}
+
+function combinedErrorPreview(log: LogEntry, fullError: string) {
+  const modelPreviews = (log.failedModelErrors || [])
+    .filter(item => item.model || item.error)
+    .map(item => errorPreview(item.error || `${item.model || 'target'}: unknown error`));
+  if (modelPreviews.length > 0) {
+    const preview = modelPreviews.join(', ');
+    return preview.length > errorPreviewLimit ? `${preview.slice(0, errorPreviewLimit - 1)}...` : preview;
+  }
+  return errorPreview(fullError);
 }
 
 export default function Logs() {
@@ -224,7 +260,7 @@ export default function Logs() {
                 <th className="px-5 py-3 text-left font-medium">转移链</th>
                 <th className="px-5 py-3 text-left font-medium">请求模型</th>
                 <th className="px-5 py-3 text-left font-medium">调用路径</th>
-                <th className="px-5 py-3 text-left font-medium">状态</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">状态</th>
                 <th className="px-5 py-3 text-left font-medium">延迟</th>
                 <th className="px-5 py-3 text-left font-medium">错误信息</th>
               </tr>
@@ -235,6 +271,7 @@ export default function Logs() {
                 const dateStr = time.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
                 const timeStr = time.toLocaleTimeString('zh-CN');
                 const hasFailover = log.failedModels.length > 0;
+                const fullError = logErrorDetails(log);
                 return (
                   <tr
                     key={log.id}
@@ -254,25 +291,37 @@ export default function Logs() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        {log.failedModels.map((model, idx) => (
-                          <span key={`${model}-${idx}`} className="inline-flex max-w-full rounded bg-red-50 px-1.5 py-0.5 font-mono text-[11px] leading-5 text-red-500 line-through" title={model}>
-                            <span className="break-all">{model}</span>
-                          </span>
-                        ))}
+                        {log.failedModels.map((model, idx) => {
+                          const modelError = modelErrorFor(log, model);
+                          return (
+                            <button
+                              key={`${model}-${idx}`}
+                              type="button"
+                              onClick={() => modelError && setSelectedError({ title: `${log.chainName} / ${model}`, message: modelError.error })}
+                              className={cn(
+                                'inline-flex max-w-full rounded bg-red-50 px-1.5 py-0.5 font-mono text-[11px] leading-5 text-red-500 line-through',
+                                modelError && 'cursor-pointer hover:bg-red-100 hover:text-red-600',
+                              )}
+                              title={modelError?.error || model}
+                            >
+                              <span className="break-all">{model}</span>
+                            </button>
+                          );
+                        })}
                         {hasFailover && <ArrowRight size={10} className="shrink-0 text-slate-300" />}
                         <span className={cn('inline-flex max-w-full break-all rounded px-1.5 py-0.5 font-mono text-[11px] leading-5', log.status === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500')}>
                           {log.finalModel || '全部失败'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="whitespace-nowrap px-5 py-3">
                       {log.status === 'success' ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-emerald-600">
                           <CheckCircle2 size={12} /> 成功
                           {hasFailover && <AlertTriangle size={10} className="ml-1 text-amber-500" />}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-red-500">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-red-500">
                           <XCircle size={12} /> 失败
                         </span>
                       )}
@@ -283,14 +332,14 @@ export default function Logs() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-500">
-                      {log.error ? (
+                      {fullError ? (
                         <button
                           type="button"
-                          onClick={() => setSelectedError({ title: `${log.chainName} / ${log.originalModel}`, message: log.error || '' })}
+                          onClick={() => setSelectedError({ title: `${log.chainName} / ${log.originalModel}`, message: fullError })}
                           className="log-error-preview block w-full min-w-0 text-left text-blue-600 hover:text-blue-700 hover:underline"
-                          title="查看完整错误"
+                          title="点击查看完整错误"
                         >
-                          {log.error}
+                          {combinedErrorPreview(log, fullError)}
                         </button>
                       ) : (
                         '-'
