@@ -1,14 +1,17 @@
 # Cloudflare Pages SPA fallback — 上游 HydraLLM React UI 使用浏览器路由（history.pushState）
 #
 # 适配方案：所有 React UI 页面路由都带 /ui/ 前缀（如 /ui/dashboard、/ui/providers），
-# 统一由 /ui/* 通配符 rewrite 到 /ui/index.html，由 React 客户端路由接管。
+# 统一由 /ui/* 通配符 rewrite 到 /ui/，由 React 客户端路由接管。
 #
 # 访问流程：
-# 1. 用户访问 /ui/dashboard → _redirects /ui/* → /ui/index.html (200)
+# 1. 用户访问 /ui/dashboard → _redirects /ui/* → /ui/ (200)
 # 2. React UI 加载，读取 window.location.pathname = /ui/dashboard
 # 3. pageFromPathname('/ui/dashboard') → 'dashboard'，渲染对应页面
 # 4. URL 保持 /ui/dashboard（不调用 replaceState，因为 isKnownAppPath 返回 true）
 # 5. 用户刷新 /ui/dashboard → 同步骤 1，React UI 正确加载
+#
+# 注意：rewrite 目标用 /ui/（结尾带斜杠）而不是 /ui/index.html。
+# CF Pages 默认对 /ui/index.html 返回 308 重定向到 /ui/，这会让 rewrite 失败。
 
 # 通配：所有 /ui/* 路径 fallback 到 React UI 入口
-/ui/*  /ui/index.html  200
+/ui/*  /ui/  200
