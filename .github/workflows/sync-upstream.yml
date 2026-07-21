@@ -89,6 +89,49 @@ jobs:
           echo "==== After sync ===="
           ls -la ui/src/
 
+      # ============================================================
+      # Cloudflare Pages 演示路由适配：给 pagePaths 加上 /ui/ 前缀
+      #
+      # 背景：React UI 用 history.pushState 做客户端路由，
+      # pagePaths 定义每个页面的 URL（App.tsx 的 syncRoute 用它做 replaceState）。
+      #
+      # Cloudflare Pages 部署在 /ui/ 子目录，入口是 /ui/index.html。
+      # 如果 pagePaths 用根路径（如 /dashboard），React UI 会把 URL 改写成 /dashboard，
+      # 用户刷新时 CF Pages 没有对根路径 /dashboard 的 fallback，导致回落到 Vue 着陆页。
+      #
+      # 解决方案：把 pagePaths 改成 /ui/dashboard、/ui/providers 等（带上 /ui/ 前缀），
+      # React UI 的 URL 永远带 /ui/ 前缀，_redirects 的 /ui/* 通配符统一处理。
+      #
+      # 注意：这个 patch 必须在每次同步后执行，因为 rm -rf ui/src 会覆盖它。
+      # ============================================================
+      - name: Patch routing — add /ui/ prefix to pagePaths
+        if: steps.probe.outputs.skip == 'false'
+        run: |
+          set -e
+          PAGES_INDEX="ui/src/pages/index.tsx"
+
+          if [ ! -f "$PAGES_INDEX" ]; then
+            echo "⚠️  $PAGES_INDEX not found, skipping patch"
+            exit 0
+          fi
+
+          # 把 pagePaths 中所有路径加上 /ui/ 前缀
+          # 匹配模式: "pageName: '/xxx'" → "pageName: '/ui/xxx'"
+          # 只改 pagePaths 块内部的行（两个 export 语句之间）
+          sed -i \
+            -e "s|\"dashboard: '/dashboard\"|\"dashboard: '/ui/dashboard\"|g" \
+            -e "s|\"providers: '/providers\"|\"providers: '/ui/providers\"|g" \
+            -e "s|\"'model-tests': '/model-tests'\"|\"'model-tests': '/ui/model-tests'\"|g" \
+            -e "s|\"chains: '/chains\"|\"chains: '/ui/chains\"|g" \
+            -e "s|\"'model-stats': '/model-stats'\"|\"'model-stats': '/ui/model-stats'\"|g" \
+            -e "s|\"endpoints: '/endpoints\"|\"endpoints: '/ui/endpoints\"|g" \
+            -e "s|\"'live-status': '/live-status'\"|\"'live-status': '/ui/live-status'\"|g" \
+            -e "s|\"logs: '/logs'\"|\"logs: '/ui/logs'\"|g" \
+            "$PAGES_INDEX"
+
+          echo "✅ Patched $PAGES_INDEX — all pagePaths now have /ui/ prefix"
+          grep "pagePaths" -A 12 "$PAGES_INDEX" | head -14
+
       - name: Check for changes
         if: steps.probe.outputs.skip == 'false'
         id: diff

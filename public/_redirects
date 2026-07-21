@@ -1,27 +1,14 @@
 # Cloudflare Pages SPA fallback — 上游 HydraLLM React UI 使用浏览器路由（history.pushState）
 #
-# 问题背景：
-# React UI 的 App.tsx 用 window.location.pathname 读取路由（如 /dashboard），
-# 并用 history.replaceState() 把 URL 从 /ui/dashboard 改写为 /dashboard（无 /ui/ 前缀）。
-# 因此需要把根级别的 8 个页面路径也 fallback 到 React UI 入口。
+# 适配方案：所有 React UI 页面路由都带 /ui/ 前缀（如 /ui/dashboard、/ui/providers），
+# 统一由 /ui/* 通配符 rewrite 到 /ui/index.html，由 React 客户端路由接管。
 #
 # 访问流程：
-# 1. 用户从首页点「体验演示」→ /ui/dashboard
-# 2. _redirects /ui/* → /ui/index.html (200) → React UI 加载
-# 3. React UI replaceState({page}, '', '/dashboard') → URL 变成 /dashboard
-# 4. 用户刷新 /dashboard → _redirects /dashboard → /ui/index.html (200) → React UI 加载并正确显示
-#
-# 规则顺序重要：详细路径在前，通配符在后。
+# 1. 用户访问 /ui/dashboard → _redirects /ui/* → /ui/index.html (200)
+# 2. React UI 加载，读取 window.location.pathname = /ui/dashboard
+# 3. pageFromPathname('/ui/dashboard') → 'dashboard'，渲染对应页面
+# 4. URL 保持 /ui/dashboard（不调用 replaceState，因为 isKnownAppPath 返回 true）
+# 5. 用户刷新 /ui/dashboard → 同步骤 1，React UI 正确加载
 
-# React UI 自身的浏览器路由页面（根级别，无 /ui/ 前缀）
-/dashboard     /ui/index.html   200
-/providers     /ui/index.html   200
-/model-tests   /ui/index.html   200
-/chains        /ui/index.html   200
-/model-stats   /ui/index.html   200
-/endpoints     /ui/index.html   200
-/live-status   /ui/index.html   200
-/logs          /ui/index.html   200
-
-# 通配：所有 /ui/* 路径 fallback 到 React UI 入口（保证 /ui/dashboard 等路由可用）
+# 通配：所有 /ui/* 路径 fallback 到 React UI 入口
 /ui/*  /ui/index.html  200

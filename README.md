@@ -10,7 +10,8 @@
 | **交互演示** | `/ui/dashboard` | HydraLLM 管理界面（React UI + fetch 拦截器 Mock API），共 8 个管理页面 |
 
 > 🧪 交互演示页通过 fetch 拦截器（内嵌在 `index.html`）拦截所有 `/api/*` 请求，返回模拟数据，无需后端即可体验完整功能。
-> 上游 HydraLLM UI 使用**浏览器路由**（`history.pushState`），直接访问 `/ui/dashboard`、`/ui/providers` 等 URL 均可工作。
+>
+> 上游 HydraLLM UI 使用**浏览器路由**（`history.pushState`），所有页面路由均带 `/ui/` 前缀（如 `/ui/dashboard`、`/ui/providers`），由 Cloudflare Pages 的 `_redirects` 通配规则统一 rewrite 到 `/ui/index.html`，由 React 客户端路由接管。
 
 **上游项目**：[clockclock1/HydraLLM](https://github.com/clockclock1/HydraLLM)
 
@@ -25,6 +26,14 @@
 - `main` 分支更新后，Cloudflare Pages 的 Git 集成自动触发构建部署
 
 > 同步 workflow 在 `.github/workflows/sync-upstream.yml`，也可在仓库 Actions 页手动触发，或通过 `repository_dispatch` webhook 触发。
+
+### 路由适配补丁（同步后自动应用）
+
+上游 HydraLLM 的 `pagePaths` 默认使用根路径 `/dashboard`、`/providers` 等。本仓库部署在 Cloudflare Pages 的 `/ui/` 子目录下，根路径会回落到 Vue 着陆页。同步 workflow 在拉取上游 `ui/src/` 后会自动运行一个 `sed` 补丁，把 `pagePaths` 全部改写为 `/ui/dashboard`、`/ui/providers` 等（带 `/ui/` 前缀），再提交。这样：
+
+- React UI 的 URL 永远是 `/ui/xxx` 形式，符合子目录部署语义
+- `public/_redirects` 只需一条 `/ui/* → /ui/index.html 200` 通配规则
+- 上游每次更新都会自动重新应用此补丁，无需人工干预
 
 ---
 
@@ -82,15 +91,16 @@ hydrallm-demo/
 │   │   ├── App.tsx               # 应用入口 + 浏览器路由（history.pushState）
 │   │   ├── components/            # 12 个 UI 组件
 │   │   ├── pages/                # 8 个独立路由页面（DashboardPage 等）
+│   │   │   └── index.tsx         # pagePaths 定义（带 /ui/ 前缀的 URL 路由）
 │   │   ├── hooks/                # usePageNavigation（封装路由 + dispatch）
 │   │   └── store.tsx             # 状态管理（含 hasUnsavedChanges）
 │   ├── public/
-│   │   ├── favicon.svg
-│   │   └── _redirects            # Cloudflare Pages SPA fallback
+│   │   └── favicon.svg
 │   ├── index.html                # 含 fetch 拦截器 Mock API + 演示横幅
 │   ├── package.json
 │   └── vite.config.ts            # base: '/ui/', singlefile 构建
-├── public/favicon.svg
+├── public/
+│   └── _redirects                # Cloudflare Pages SPA fallback：/ui/* → /ui/index.html (200)
 ├── index.html
 ├── vite.config.ts
 ├── uno.config.ts
