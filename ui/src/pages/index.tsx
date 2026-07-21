@@ -13,14 +13,14 @@ export const pageComponents: Record<Page, ComponentType> = {
 };
 
 export const pagePaths: Record<Page, string> = {
-  dashboard: '/dashboard',
-  providers: '/providers',
-  'model-tests': '/model-tests',
-  chains: '/chains',
-  'model-stats': '/model-stats',
-  endpoints: '/endpoints',
-  'live-status': '/live-status',
-  logs: '/logs',
+  dashboard: '/ui/dashboard',
+  providers: '/ui/providers',
+  'model-tests': '/ui/model-tests',
+  chains: '/ui/chains',
+  'model-stats': '/ui/model-stats',
+  endpoints: '/ui/endpoints',
+  'live-status': '/ui/live-status',
+  logs: '/ui/logs',
 };
 
 const pageIds = Object.keys(pagePaths) as Page[];

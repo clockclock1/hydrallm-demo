@@ -95,42 +95,67 @@ jobs:
       # 背景：React UI 用 history.pushState 做客户端路由，
       # pagePaths 定义每个页面的 URL（App.tsx 的 syncRoute 用它做 replaceState）。
       #
-      # Cloudflare Pages 部署在 /ui/ 子目录，入口是 /ui/index.html。
+      # Cloudflare Pages 部署在 /ui/ 子目录，入口是 /ui/（不要用 /ui/index.html，
+      # CF Pages 默认对 /ui/index.html 返回 308 → /ui/，会破坏 _redirects rewrite）。
       # 如果 pagePaths 用根路径（如 /dashboard），React UI 会把 URL 改写成 /dashboard，
       # 用户刷新时 CF Pages 没有对根路径 /dashboard 的 fallback，导致回落到 Vue 着陆页。
       #
-      # 解决方案：把 pagePaths 改成 /ui/dashboard、/ui/providers 等（带上 /ui/ 前缀），
-      # React UI 的 URL 永远带 /ui/ 前缀，_redirects 的 /ui/* 通配符统一处理。
+      # 解决方案：把 pagePaths 块内的路径全部加上 /ui/ 前缀。
+      # 这样 React UI 的 URL 永远带 /ui/ 前缀，_redirects 的 /ui/* 通配符统一处理。
       #
-      # 注意：这个 patch 必须在每次同步后执行，因为 rm -rf ui/src 会覆盖它。
+      # 实现用 Python（Actions ubuntu runner 自带），不硬编码页面名，
+      # 用正则只给 pagePaths 对象字面量里的 '/xxx' 加前缀（跳过已带 /ui/ 的），
+      # 上游增删路径也能自动适配。
+      #
+      # 这个 patch 必须在每次同步后执行，因为 rm -rf ui/src 会覆盖它。
       # ============================================================
       - name: Patch routing — add /ui/ prefix to pagePaths
         if: steps.probe.outputs.skip == 'false'
         run: |
           set -e
           PAGES_INDEX="ui/src/pages/index.tsx"
-
           if [ ! -f "$PAGES_INDEX" ]; then
             echo "⚠️  $PAGES_INDEX not found, skipping patch"
             exit 0
           fi
+          python3 - <<'PY'
+          import re, pathlib
+          p = pathlib.Path("ui/src/pages/index.tsx")
+          src = p.read_text(encoding="utf-8")
 
-          # 把 pagePaths 中所有路径加上 /ui/ 前缀
-          # 匹配模式: "pageName: '/xxx'" → "pageName: '/ui/xxx'"
-          # 只改 pagePaths 块内部的行（两个 export 语句之间）
-          sed -i \
-            -e "s|\"dashboard: '/dashboard\"|\"dashboard: '/ui/dashboard\"|g" \
-            -e "s|\"providers: '/providers\"|\"providers: '/ui/providers\"|g" \
-            -e "s|\"'model-tests': '/model-tests'\"|\"'model-tests': '/ui/model-tests'\"|g" \
-            -e "s|\"chains: '/chains\"|\"chains: '/ui/chains\"|g" \
-            -e "s|\"'model-stats': '/model-stats'\"|\"'model-stats': '/ui/model-stats'\"|g" \
-            -e "s|\"endpoints: '/endpoints\"|\"endpoints: '/ui/endpoints\"|g" \
-            -e "s|\"'live-status': '/live-status'\"|\"'live-status': '/ui/live-status'\"|g" \
-            -e "s|\"logs: '/logs'\"|\"logs: '/ui/logs'\"|g" \
-            "$PAGES_INDEX"
+          # 仅在 pagePaths 的对象字面量块内（export const pagePaths = { ... };）做替换。
+          # 匹配形如 '/xxx' 或 "/xxx" 的字符串字面量，xxx 不以 /ui/ 开头且不含空白，
+          # 替换为 '/ui/xxx'。保留原引号风格。
+          pattern = re.compile(
+              r"(export const pagePaths[^=]*=\s*\{)(.*?)(\};)",
+              re.DOTALL
+          )
 
-          echo "✅ Patched $PAGES_INDEX — all pagePaths now have /ui/ prefix"
-          grep "pagePaths" -A 12 "$PAGES_INDEX" | head -14
+          def add_prefix(body: str) -> str:
+              # 给 body 中形如 '/xxx' 或 "/xxx" 且未带 /ui/ 的字符串加上前缀
+              def repl(m):
+                  quote, inner = m.group(1), m.group(2)
+                  if inner.startswith("/ui/") or inner == "/" or inner == "":
+                      return m.group(0)
+                  return f"{quote}/ui/{inner.lstrip('/')}{quote}"
+              return re.sub(r"(['\"])(/[^\s'\"]*)\1", repl, body)
+
+          new_src, n = pattern.subn(
+              lambda m: m.group(1) + add_prefix(m.group(2)) + m.group(3),
+              src
+          )
+
+          if n == 0:
+              print("ℹ️  pagePaths block not matched (file structure changed?) — skipping")
+          else:
+              p.write_text(new_src, encoding="utf-8")
+              print(f"✅ Patched {p} — {n} replacements")
+          # 打印结果供调试
+          print("---- pagePaths after patch ----")
+          for line in new_src.splitlines():
+              if "pagePaths" in line or "/ui/" in line:
+                  print(line)
+          PY
 
       - name: Check for changes
         if: steps.probe.outputs.skip == 'false'
