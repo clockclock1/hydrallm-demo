@@ -155,6 +155,83 @@ jobs:
           for line in new_src.splitlines():
               if "pagePaths" in line or "/ui/" in line:
                   print(line)
+
+          # ============================================================
+          # 边界情况：把 /ui（无尾随路径）和 /ui/index.html 视为 dashboard 首页
+          #
+          # 背景：_redirects 把 /ui/* rewrite 到 /ui/（结尾带斜杠），但用户
+          # 直接访问 /ui 或 /ui/index.html 时，pageFromPathname 找不到对应
+          # 页面会回落到 dashboard，但 isKnownAppPath 也会返回 false，
+          # 导致 syncRoute 调用 replaceState 把 URL 改写为 /ui/dashboard，
+          # 地址栏非预期跳变。同时上游原始 pageFromPathname/isKnownAppPath
+          # 只判断 `/` 和 `/index.html`，不知道 /ui 子目录的存在。
+          #
+          # 方案：在两个函数体内 `const clean = normalizePath(pathname);` 之后
+          # 幂等地插入对 /ui 和 /ui/index.html 的判断（放在 return 流之前，
+          # 避免产生死代码）。如果检测到已存在则跳过，保证多次同步不会重复
+          # 插入或破坏已有结构。选择 const 行作为锚点是因为两个目标函数都以
+          # 这一行为首行（normalizePath 调用），且不会与 pagePaths 内的字符串
+          # 字面量混淆。
+          # ============================================================
+          EDGE_SNIPPET_PFP = (
+              "  // `/ui`（无尾随路径）等价于 dashboard 首页\n"
+              "  if (clean === '/ui' || clean === '/ui/index.html') return 'dashboard';\n"
+          )
+          EDGE_SNIPPET_IKAP = (
+              "  // `/ui`（无尾随路径）是 React UI 的入口目录\n"
+              "  if (clean === '/ui' || clean === '/ui/index.html') return true;\n"
+          )
+
+          # 重新读最新内容（前一步可能已 write_text）
+          src = p.read_text(encoding="utf-8")
+
+          def inject_after_const_clean(func_header: str, snippet: str, marker: str) -> int:
+              """在 func_header 函数体中的 `const clean = normalizePath(...);` 行后
+              幂等插入 snippet（即 edge case 的 if 分支）。"""
+              nonlocal src
+              if marker in src:
+                  return 0
+              m = re.search(
+                  re.escape(func_header) + r"[^\n]*\n(?P<body>(?:.*\n)*?)\}",
+                  src
+              )
+              if not m:
+                  print(f"⚠️  `{func_header}` 未匹配，跳过 edge 注入")
+                  return 0
+              body = m.group("body")
+              const_match = re.search(
+                  r"^(\s*)const clean\s*=\s*normalizePath\([^)]*\);\n",
+                  body,
+                  re.MULTILINE
+              )
+              if not const_match:
+                  print(f"⚠️  `{func_header}` 体中未找到 `const clean = normalizePath(...)`，跳过 edge 注入")
+                  return 0
+              idx = m.start("body") + const_match.end()
+              src = src[:idx] + snippet + src[idx:]
+              return 1
+
+          total_edge = 0
+          total_edge += inject_after_const_clean(
+              "export function pageFromPathname",
+              EDGE_SNIPPET_PFP,
+              "clean === '/ui' || clean === '/ui/index.html') return 'dashboard'"
+          )
+          total_edge += inject_after_const_clean(
+              "export function isKnownAppPath",
+              EDGE_SNIPPET_IKAP,
+              "clean === '/ui' || clean === '/ui/index.html') return true"
+          )
+
+          if total_edge > 0:
+              p.write_text(src, encoding="utf-8")
+              print(f"✅ Injected /ui edge-case handling — {total_edge} inserts")
+          else:
+              print("ℹ️  /ui edge-case handling already present, no injection needed")
+          print("---- edge-case helpers after patch ----")
+          for line in src.splitlines():
+              if "/ui'" in line or "/ui/index" in line:
+                  print(line)
           PY
 
       - name: Check for changes

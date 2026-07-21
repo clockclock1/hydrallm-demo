@@ -37,10 +37,15 @@ export function pathForPage(page: Page) {
 export function pageFromPathname(pathname: string): Page {
   const clean = normalizePath(pathname);
   if (clean === '/' || clean === '/index.html') return 'dashboard';
+  // `/ui`（无尾随路径）等价于 dashboard 首页
+  if (clean === '/ui' || clean === '/ui/index.html') return 'dashboard';
   return pageIds.find(page => pagePaths[page] === clean) || 'dashboard';
 }
 
 export function isKnownAppPath(pathname: string) {
   const clean = normalizePath(pathname);
-  return clean === '/' || clean === '/index.html' || pageIds.some(page => pagePaths[page] === clean);
+  if (clean === '/' || clean === '/index.html') return true;
+  // `/ui`（无尾随路径）是 React UI 的入口目录
+  if (clean === '/ui' || clean === '/ui/index.html') return true;
+  return pageIds.some(page => pagePaths[page] === clean);
 }
