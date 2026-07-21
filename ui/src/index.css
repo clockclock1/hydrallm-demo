@@ -1926,15 +1926,15 @@ button:active {
 }
 
 .live-animated-icon .live-glyph-spin {
-  animation: none !important;
+  animation: live-glyph-spin 1400ms linear infinite !important;
   transform-origin: center;
-  will-change: auto;
+  will-change: transform;
 }
 
 .live-animated-icon .live-glyph-pulse {
-  animation: none !important;
+  animation: live-glyph-pulse 1500ms ease-in-out infinite !important;
   transform-origin: center;
-  will-change: auto;
+  will-change: transform, opacity;
 }
 
 .live-animated-icon .live-glyph-delay {
@@ -1942,13 +1942,13 @@ button:active {
 }
 
 .live-animated-icon .live-glyph-ping {
-  animation: none !important;
+  animation: live-glyph-ping 1600ms ease-out infinite !important;
   transform-origin: center;
-  will-change: auto;
+  will-change: transform, opacity;
 }
 
 .live-animated-icon.live-glyph-active .live-glyph-spin {
-  animation: live-glyph-spin 1200ms linear infinite !important;
+  animation: live-glyph-spin 900ms linear infinite !important;
   will-change: transform;
 }
 

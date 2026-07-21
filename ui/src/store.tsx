@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { Provider, FailoverChain, Page, LogEntry, ActiveThread, ModelCapability, ModelTestResult, ModelTestTarget, ChannelModelStats } from './types';
+import type { Provider, FailoverChain, Page, LogEntry, ActiveThread, ModelCapability, ModelTestResult, ModelTestTarget, ChannelModelStats, LogSettings } from './types';
 
 interface BackendTarget {
   name?: string;
@@ -40,6 +40,7 @@ interface BackendConfig {
   proxyKeys: { name?: string; key: string; enabled?: boolean }[];
   failoverStatusCodes: number[];
   requestTimeoutMs: number;
+  logSettings?: LogSettings;
   circuitBreaker?: {
     failureThreshold?: number;
     cooldownMinutes?: number;
@@ -83,6 +84,9 @@ interface BackendStats {
     error?: string;
   }>;
   activeThreads?: ActiveThread[];
+  logSettings?: LogSettings;
+  logsPath?: string;
+  modelStatsPath?: string;
 }
 
 interface State {
@@ -98,6 +102,7 @@ interface State {
   authChecked: boolean;
   configLoaded: boolean;
   pageStatsLoading: boolean;
+  statsRefreshNonce: number;
   saveStatus: 'idle' | 'loading' | 'saving' | 'saved' | 'error';
   saveError: string;
   hasUnsavedChanges: boolean;
@@ -125,13 +130,19 @@ type Action =
   | { type: 'ADD_CHAIN'; chain: FailoverChain }
   | { type: 'UPDATE_CHAIN'; chain: FailoverChain }
   | { type: 'DELETE_CHAIN'; id: string }
-  | { type: 'ADD_LOG'; log: LogEntry };
+  | { type: 'ADD_LOG'; log: LogEntry }
+  | { type: 'SET_LOG_SETTINGS'; settings: LogSettings };
 
 const defaultConfig: BackendConfig = {
   adminToken: 'admin',
   proxyKeys: [{ name: 'test-key', key: 'sk-local-test', enabled: true }],
   failoverStatusCodes: [401, 403, 408, 409, 429, 500, 502, 503, 504],
   requestTimeoutMs: 120000,
+  logSettings: {
+    maxEntries: 500,
+    maxBytes: 10 * 1024 * 1024,
+    maxErrorChars: 65536,
+  },
   circuitBreaker: {
     failureThreshold: 3,
     cooldownMinutes: 10,
@@ -187,6 +198,7 @@ const initialState: State = {
   authChecked: false,
   configLoaded: false,
   pageStatsLoading: true,
+  statsRefreshNonce: 0,
   saveStatus: 'idle',
   saveError: '',
   hasUnsavedChanges: false,
@@ -233,13 +245,23 @@ function markConfigChanged(state: State, updates: Partial<State>): State {
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'SET_PAGE':
-      if (state.currentPage === action.page) return state;
+    case 'SET_PAGE': {
+      const hasPageStats = Boolean(pageStatsPath(action.page));
+      if (state.currentPage === action.page) {
+        if (!state.configLoaded || !hasPageStats) return state;
+        return {
+          ...state,
+          pageStatsLoading: true,
+          statsRefreshNonce: state.statsRefreshNonce + 1,
+        };
+      }
       return {
         ...state,
         currentPage: action.page,
-        pageStatsLoading: state.configLoaded && Boolean(pageStatsPath(action.page)),
+        pageStatsLoading: state.configLoaded && hasPageStats,
+        statsRefreshNonce: state.statsRefreshNonce + 1,
       };
+    }
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
     case 'SET_ADMIN_TOKEN':
@@ -256,6 +278,7 @@ function reducer(state: State, action: Action): State {
         authChecked: true,
         configLoaded: false,
         pageStatsLoading: false,
+        statsRefreshNonce: 0,
         backendConfig: null,
         backendStats: null,
         providers: [],
@@ -285,7 +308,8 @@ function reducer(state: State, action: Action): State {
         authenticated: true,
         authChecked: true,
         configLoaded: true,
-        pageStatsLoading: state.configLoaded ? state.pageStatsLoading : Boolean(pageStatsPath(state.currentPage)),
+        pageStatsLoading: Boolean(pageStatsPath(state.currentPage)),
+        statsRefreshNonce: state.statsRefreshNonce + 1,
         saveStatus: 'idle',
         saveError: '',
         hasUnsavedChanges: false,
@@ -335,6 +359,18 @@ function reducer(state: State, action: Action): State {
       return markConfigChanged(state, { chains: state.chains.filter(c => c.id !== action.id) });
     case 'ADD_LOG':
       return { ...state, logs: [action.log, ...state.logs].slice(0, 200) };
+    case 'SET_LOG_SETTINGS':
+      return {
+        ...state,
+        backendConfig: {
+          ...(state.backendConfig || defaultConfig),
+          logSettings: action.settings,
+        },
+        backendStats: {
+          ...(state.backendStats || {}),
+          logSettings: action.settings,
+        },
+      };
     default:
       return state;
   }
@@ -612,6 +648,8 @@ const StoreContext = createContext<{
   fetchProviderModels: (url: string, apiKey: string) => Promise<string[]>;
   refreshProviderHealth: (providerId?: string, refresh?: boolean) => Promise<void>;
   runModelTests: (targets: ModelTestTarget[], capabilities: ModelCapability[], signal?: AbortSignal) => Promise<ModelTestResult[]>;
+  saveLogSettings: (settings: LogSettings) => Promise<LogSettings>;
+  clearLogs: () => Promise<void>;
 } | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -775,6 +813,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return body.results || [];
   }, [adminHeaders, handleUnauthorized]);
 
+  const saveLogSettings = useCallback(async (settings: LogSettings) => {
+    const res = await fetch('/api/log-settings', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...adminHeaders(),
+      },
+      cache: 'no-store',
+      body: JSON.stringify(settings),
+    });
+    handleUnauthorized(res);
+    if (!res.ok) throw new Error(await readJsonError(res));
+    const body = await res.json();
+    const applied = body.settings || settings;
+    dispatch({ type: 'SET_LOG_SETTINGS', settings: applied });
+    dispatch({ type: 'SET_PAGE', page: 'logs' });
+    return applied;
+  }, [adminHeaders, handleUnauthorized]);
+
+  const clearLogs = useCallback(async () => {
+    const res = await fetch('/api/logs/clear', {
+      method: 'POST',
+      headers: adminHeaders(),
+      cache: 'no-store',
+    });
+    handleUnauthorized(res);
+    if (!res.ok) throw new Error(await readJsonError(res));
+    dispatch({ type: 'LOAD_BACKEND_STATS', stats: { logs: [] }, page: 'logs' });
+    dispatch({ type: 'SET_PAGE', page: 'logs' });
+  }, [adminHeaders, handleUnauthorized]);
+
   const fetchPageStats = useCallback(async (page: Page, signal?: AbortSignal) => {
     const path = pageStatsPath(page);
     if (!path || !state.configLoaded) return;
@@ -841,7 +910,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       activeController?.abort();
       window.clearInterval(timer);
     };
-  }, [state.configLoaded, state.currentPage, fetchPageStats]);
+  }, [state.configLoaded, state.currentPage, state.statsRefreshNonce, fetchPageStats]);
 
   useEffect(() => {
     if (!state.configLoaded || !state.providers.length || !pageNeedsProviderHealth(state.currentPage)) return;
@@ -849,7 +918,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state.configLoaded, state.currentPage, providerHealthSignature, refreshProviderHealth]);
 
   return (
-    <StoreContext.Provider value={{ state, dispatch, login, logout, loadConfig, saveConfig, fetchProviderModels, refreshProviderHealth, runModelTests }}>
+    <StoreContext.Provider value={{ state, dispatch, login, logout, loadConfig, saveConfig, fetchProviderModels, refreshProviderHealth, runModelTests, saveLogSettings, clearLogs }}>
       {children}
     </StoreContext.Provider>
   );

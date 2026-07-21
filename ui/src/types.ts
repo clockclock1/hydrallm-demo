@@ -94,6 +94,12 @@ export interface LogEntry {
   error?: string;
 }
 
+export interface LogSettings {
+  maxEntries: number;
+  maxBytes: number;
+  maxErrorChars: number;
+}
+
 export type ModelCapability = 'text' | 'vision' | 'tool';
 export type ModelTestStatus = 'passed' | 'failed' | 'uncertain' | 'skipped';
 
