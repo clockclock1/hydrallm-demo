@@ -188,7 +188,7 @@ jobs:
           def inject_after_const_clean(func_header: str, snippet: str, marker: str) -> int:
               """在 func_header 函数体中的 `const clean = normalizePath(...);` 行后
               幂等插入 snippet（即 edge case 的 if 分支）。"""
-              nonlocal src
+              global src
               if marker in src:
                   return 0
               m = re.search(
