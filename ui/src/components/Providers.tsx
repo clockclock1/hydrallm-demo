@@ -25,6 +25,19 @@ function uniqueStrings(items: string[]) {
   return [...new Set(items.map(item => item.trim()).filter(Boolean))];
 }
 
+function firstApiKey(provider: Pick<Provider, 'apiKey' | 'apiKeys'>) {
+  return provider.apiKey || provider.apiKeys?.[0] || '';
+}
+
+function normalizeApiKeys(mode: Provider['apiKeyMode'], apiKey: string, text: string) {
+  const keys = mode === 'single' ? uniqueStrings([apiKey]) : uniqueStrings(text.split(/\r?\n/));
+  return {
+    apiKey: keys[0] || '',
+    apiKeys: keys,
+    apiKeyMode: keys.length <= 1 ? 'single' as const : mode,
+  };
+}
+
 // Modal for adding/editing providers
 function ProviderModal({
   provider,
@@ -38,14 +51,19 @@ function ProviderModal({
   const [name, setName] = useState(provider?.name || '');
   const [baseUrl, setBaseUrl] = useState(provider?.baseUrl || '');
   const [apiKey, setApiKey] = useState(provider?.apiKey || '');
+  const [apiKeyMode, setApiKeyMode] = useState<Provider['apiKeyMode']>(provider?.apiKeyMode || 'single');
+  const [apiKeysText, setApiKeysText] = useState(
+    (provider?.apiKeys?.length ? provider.apiKeys : provider?.apiKey ? [provider.apiKey] : []).join('\n')
+  );
 
   const handleSave = () => {
     if (!name || !baseUrl) return;
+    const normalizedKeys = normalizeApiKeys(apiKeyMode, apiKey, apiKeysText);
     onSave({
       id: provider?.id || uuidv4(),
       name,
       baseUrl: baseUrl.replace(/\/$/, ''),
-      apiKey,
+      ...normalizedKeys,
       models: provider?.models || [],
       status: provider?.status || 'unknown',
       latency: provider?.latency,
@@ -88,16 +106,56 @@ function ProviderModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-sm font-medium text-slate-700">API Key</label>
+              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs">
+                {([
+                  ['single', '单 Key'],
+                  ['round-robin', '多 Key 轮询'],
+                  ['random', '多 Key 随机'],
+                ] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      if (mode === 'single') {
+                        const first = uniqueStrings(apiKeysText.split(/\r?\n/))[0];
+                        if (first && !apiKey) setApiKey(first);
+                      } else if (!apiKeysText.trim() && apiKey.trim()) {
+                        setApiKeysText(apiKey.trim());
+                      }
+                      setApiKeyMode(mode);
+                    }}
+                    className={cn(
+                      'rounded-md px-2.5 py-1 font-medium transition-colors',
+                      apiKeyMode === mode ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="relative">
               <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                value={apiKey}
-                onChange={e => setApiKey(e.target.value)}
-                type="password"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm font-mono transition-all"
-                placeholder="sk-..."
-              />
+              {apiKeyMode === 'single' ? (
+                <input
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  type="password"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm font-mono transition-all"
+                  placeholder="sk-..."
+                />
+              ) : (
+                <textarea
+                  value={apiKeysText}
+                  onChange={e => setApiKeysText(e.target.value)}
+                  wrap="off"
+                  spellCheck={false}
+                  className="api-key-lines-textarea min-h-32 w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 pl-10 font-mono text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  placeholder={'sk-key-1\nsk-key-2\nsk-key-3'}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -144,7 +202,7 @@ function FetchModelsModal({
     setLoading(true);
     setError('');
     try {
-      const models = uniqueStrings(await fetchProviderModels(customUrl, provider.apiKey));
+      const models = uniqueStrings(await fetchProviderModels(customUrl, firstApiKey(provider)));
       setFetchedModels(models);
       const nextAvailableModels = uniqueStrings([...provider.models, ...models, ...customModels]);
       setSelectedModels(current => new Set(
@@ -443,6 +501,13 @@ export default function Providers() {
                   <div className="min-w-0">
                     <h4 className="truncate font-semibold text-slate-800">{provider.name}</h4>
                     <p className="truncate text-xs text-slate-400 font-mono">{provider.baseUrl}</p>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      {provider.apiKeyMode === 'random'
+                        ? `多 Key 随机 · ${(provider.apiKeys || []).length} 个`
+                        : provider.apiKeyMode === 'round-robin'
+                          ? `多 Key 轮询 · ${(provider.apiKeys || []).length} 个`
+                          : '单 Key'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">

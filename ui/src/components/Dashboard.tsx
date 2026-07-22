@@ -16,9 +16,9 @@ import type { Page } from '../types';
 import { cn } from '../utils/cn';
 import AnimatedGlyph from './AnimatedGlyph';
 
-function successRate(successes: number, failures: number) {
+function successRate(successes: number, failures: number): number | null {
   const finished = successes + failures;
-  return finished ? Number(((successes / finished) * 100).toFixed(1)) : 100;
+  return finished ? Number(((successes / finished) * 100).toFixed(1)) : null;
 }
 
 function StatCard({ icon, label, value, sub, color, delay = 0, targetPage, onNavigate }: {
@@ -62,11 +62,15 @@ export default function Dashboard() {
   const enabledChains = state.chains.filter(c => c.enabled).length;
   const totalRequests = stats?.requests ?? state.chains.reduce((sum, c) => sum + c.totalRequests, 0);
   const totalFailovers = stats?.failovers ?? state.chains.reduce((sum, c) => sum + c.failoverCount, 0);
-  const avgSuccessRate = stats
-    ? successRate(stats.successes || 0, stats.failures || 0).toFixed(1)
-    : state.chains.length
-      ? (state.chains.reduce((sum, c) => sum + c.successRate, 0) / state.chains.length).toFixed(1)
-      : '100.0';
+  const measuredChainSuccessRates = state.chains
+    .map(chain => chain.successRate)
+    .filter((rate): rate is number => rate !== null);
+  const backendSuccessRate = stats ? successRate(stats.successes || 0, stats.failures || 0) : null;
+  const avgSuccessRate = backendSuccessRate !== null
+    ? backendSuccessRate.toFixed(1)
+    : measuredChainSuccessRates.length
+      ? (measuredChainSuccessRates.reduce((sum, rate) => sum + rate, 0) / measuredChainSuccessRates.length).toFixed(1)
+      : '--';
 
   return (
     <div className="page-motion space-y-6">
@@ -200,15 +204,17 @@ export default function Dashboard() {
                       <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
                         <span>总请求 {chain.totalRequests.toLocaleString()}</span>
                         <span>转移 {chain.failoverCount.toLocaleString()}</span>
-                        <span>成功率 {chain.successRate}%</span>
+                        <span>成功率 {chain.successRate === null ? '--' : `${chain.successRate}%`}</span>
                         <span>模型 {chain.models.length}</span>
                       </div>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 lg:w-32">
-                      <div
-                        className={cn('h-full rounded-full transition-all duration-700', chain.successRate >= 99 ? 'bg-emerald-500' : chain.successRate >= 90 ? 'bg-amber-500' : 'bg-red-500')}
-                        style={{ width: `${Math.min(100, Math.max(0, chain.successRate))}%` }}
-                      />
+                      {chain.successRate !== null && (
+                        <div
+                          className={cn('h-full rounded-full transition-all duration-700', chain.successRate >= 99 ? 'bg-emerald-500' : chain.successRate >= 90 ? 'bg-amber-500' : 'bg-red-500')}
+                          style={{ width: `${Math.min(100, Math.max(0, chain.successRate))}%` }}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">

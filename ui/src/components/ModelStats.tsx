@@ -22,6 +22,11 @@ function pct(successes: number, total: number) {
   return total ? Number(((successes / total) * 100).toFixed(1)) : 100;
 }
 
+function modelDisplayName(name: string) {
+  const separator = name.indexOf('|');
+  return separator === -1 ? name : name.slice(separator + 1);
+}
+
 function compareModelStats(a: ModelStatsRow, b: ModelStatsRow, sortKey: ModelStatsSortKey, sortDirection: ModelStatsSortDirection) {
   const direction = sortDirection === 'asc' ? 1 : -1;
 
@@ -158,7 +163,7 @@ function ChannelBlock({
                   <td className="max-w-[360px] px-5 py-3">
                     <div className="flex items-center gap-2">
                       {model.failures > 0 ? <AlertTriangle size={14} className="text-amber-500" /> : <CheckCircle2 size={14} className="text-emerald-500" />}
-                      <span className="truncate font-mono text-xs text-slate-700">{model.name}</span>
+                      <span className="truncate font-mono text-xs text-slate-700">{modelDisplayName(model.name)}</span>
                     </div>
                   </td>
                   <td className="px-5 py-3 text-right font-mono text-xs text-slate-700">{model.requests.toLocaleString()}</td>

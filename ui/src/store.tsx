@@ -6,6 +6,8 @@ interface BackendTarget {
   name?: string;
   baseUrl?: string;
   apiKey?: string;
+  apiKeys?: string[];
+  apiKeyMode?: Provider['apiKeyMode'];
   modelName?: string;
   modelNameTemplate?: string;
   enabled?: boolean;
@@ -32,6 +34,8 @@ interface BackendProvider {
   name?: string;
   baseUrl?: string;
   apiKey?: string;
+  apiKeys?: string[];
+  apiKeyMode?: Provider['apiKeyMode'];
   models?: string[];
 }
 
@@ -393,8 +397,7 @@ function applyStatsToState(state: State, stats: BackendStats): State {
     chains: hasChains ? state.chains.map((chain) => {
       const modelStats = stats.chains?.[chain.proxyModelName];
       if (!modelStats) return chain;
-      const totalFinished = modelStats.successes + modelStats.failures;
-      const successRate = totalFinished ? Number(((modelStats.successes / totalFinished) * 100).toFixed(1)) : 100;
+      const successRate = successRateFromStats(modelStats.successes, modelStats.failures);
       return {
         ...chain,
         totalRequests: modelStats.requests,
@@ -458,6 +461,8 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
       name: provider.name || providerNameFromUrl(provider.baseUrl || ''),
       baseUrl: provider.baseUrl || '',
       apiKey: provider.apiKey || '',
+      apiKeys: providerApiKeys(provider.apiKey || '', provider.apiKeys || []),
+      apiKeyMode: normalizedApiKeyMode(provider.apiKeyMode, provider.apiKeys || [], provider.apiKey || ''),
       models: uniqueStrings(provider.models || []),
       status: 'unknown',
     }));
@@ -465,13 +470,15 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
   const firstProxyKey = config.proxyKeys.find(key => key.enabled !== false)?.key || 'sk-local-test';
 
   providers.forEach((provider) => {
-    providerKeyToId.set(providerKey(provider.baseUrl, provider.apiKey, provider.name), provider.id);
+    providerKeyToId.set(providerKey(provider.baseUrl, provider.apiKey, provider.name, provider.apiKeys, provider.apiKeyMode), provider.id);
   });
 
   function ensureProvider(target: BackendTarget): string {
     const baseUrl = target.baseUrl || '';
     const apiKey = target.apiKey || '';
-    const key = providerKey(baseUrl, apiKey, target.name || '');
+    const apiKeys = providerApiKeys(apiKey, target.apiKeys || []);
+    const apiKeyMode = normalizedApiKeyMode(target.apiKeyMode, apiKeys, apiKey);
+    const key = providerKey(baseUrl, apiKey, target.name || '', apiKeys, apiKeyMode);
     const existing = providerKeyToId.get(key);
     if (existing) return existing;
 
@@ -480,6 +487,8 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
       name: target.name || providerNameFromUrl(baseUrl),
       baseUrl,
       apiKey,
+      apiKeys,
+      apiKeyMode,
       models: [],
       status: 'unknown',
     };
@@ -492,8 +501,7 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
     const modelStats = stats?.chains?.[model.publicName];
     const modelCircuitBreaker = model.circuitBreaker || config.circuitBreaker || defaultConfig.circuitBreaker;
     const totalRequests = modelStats?.requests || 0;
-    const totalFinished = (modelStats?.successes || 0) + (modelStats?.failures || 0);
-    const successRate = totalFinished ? Number((((modelStats?.successes || 0) / totalFinished) * 100).toFixed(1)) : 100;
+    const successRate = successRateFromStats(modelStats?.successes || 0, modelStats?.failures || 0);
     const models = (model.targets || []).map((target, index) => {
       const providerId = ensureProvider(target);
       const provider = providers.find(item => item.id === providerId);
@@ -554,12 +562,29 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
   return { providers, chains, logs };
 }
 
-function providerKey(baseUrl: string, apiKey: string, name: string) {
-  return `${baseUrl || ''}||${apiKey || ''}||${name || ''}`;
+function providerKey(baseUrl: string, apiKey: string, name: string, apiKeys: string[] = [], apiKeyMode: Provider['apiKeyMode'] = 'single') {
+  return `${baseUrl || ''}||${apiKey || ''}||${name || ''}||${apiKeyMode}||${apiKeys.join('\n')}`;
+}
+
+function successRateFromStats(successes: number, failures: number): number | null {
+  const finished = successes + failures;
+  return finished ? Number(((successes / finished) * 100).toFixed(1)) : null;
 }
 
 function uniqueStrings(items: string[]) {
-  return [...new Set(items.map(String).filter(Boolean))];
+  return [...new Set(items.map(item => String(item).trim()).filter(Boolean))];
+}
+
+function providerApiKeys(apiKey: string, apiKeys: string[]) {
+  const keys = uniqueStrings(apiKeys);
+  if (!keys.length && apiKey.trim()) keys.push(apiKey.trim());
+  return keys;
+}
+
+function normalizedApiKeyMode(mode: unknown, apiKeys: string[], apiKey: string): Provider['apiKeyMode'] {
+  const keys = providerApiKeys(apiKey, apiKeys);
+  if (keys.length <= 1) return 'single';
+  return mode === 'round-robin' || mode === 'random' ? mode : 'round-robin';
 }
 
 function uiToBackend(state: State): BackendConfig {
@@ -592,6 +617,8 @@ function uiToBackend(state: State): BackendConfig {
           name: provider?.name || model.modelName,
           baseUrl: provider?.baseUrl || '',
           apiKey: provider?.apiKey || '',
+          apiKeys: provider?.apiKeys || [],
+          apiKeyMode: provider?.apiKeyMode || 'single',
           modelName: model.modelName,
           enabled: model.enabled,
           priority: index + 1,
@@ -600,7 +627,7 @@ function uiToBackend(state: State): BackendConfig {
           timeoutMs: Math.max(1, Math.floor(Number(chain.targetTimeoutSeconds || model.timeout) || 30)) * 1000,
         };
       })
-      .filter(target => target.baseUrl && target.apiKey && target.modelName),
+      .filter(target => target.baseUrl && (target.apiKey || target.apiKeys.length) && target.modelName),
   }));
 
   const providers: BackendProvider[] = state.providers.map((provider) => ({
@@ -608,6 +635,8 @@ function uiToBackend(state: State): BackendConfig {
     name: provider.name,
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
+    apiKeys: provider.apiKeys || [],
+    apiKeyMode: provider.apiKeyMode || 'single',
     models: uniqueStrings(provider.models || []),
   }));
 
@@ -774,7 +803,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [adminHeaders, handleUnauthorized]);
 
   const providerHealthSignature = useMemo(
-    () => state.providers.map((provider) => `${provider.id}:${provider.name}:${provider.baseUrl}:${provider.apiKey}`).join('|'),
+    () => state.providers.map((provider) => `${provider.id}:${provider.name}:${provider.baseUrl}:${provider.apiKey}:${provider.apiKeyMode}:${(provider.apiKeys || []).join(',')}`).join('|'),
     [state.providers]
   );
 
@@ -784,6 +813,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       name: provider.name,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
+      apiKeys: provider.apiKeys || [],
+      apiKeyMode: provider.apiKeyMode || 'single',
     })),
     [providerHealthSignature]
   );

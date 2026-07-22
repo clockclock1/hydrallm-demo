@@ -100,6 +100,8 @@ export default function ModelTests() {
       providerName: provider.name,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
+      apiKeys: provider.apiKeys || [],
+      apiKeyMode: provider.apiKeyMode || 'single',
       modelName,
     }))
   ), [state.providers]);

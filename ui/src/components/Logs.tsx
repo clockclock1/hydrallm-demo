@@ -195,19 +195,19 @@ export default function Logs() {
             type="button"
             onClick={handleSaveSettings}
             disabled={savingSettings}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+            className="log-action-button inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
           >
-            <Save size={15} />
-            保存设置
+            <Save className="log-action-icon" size={16} aria-hidden="true" />
+            <span>保存设置</span>
           </button>
           <button
             type="button"
             onClick={handleClearLogs}
             disabled={clearingLogs}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+            className="log-action-button inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
           >
-            <Trash2 size={15} />
-            清理日志
+            <Trash2 className="log-action-icon" size={16} aria-hidden="true" />
+            <span>清理日志</span>
           </button>
         </div>
         {settingsStatus && <p className="mt-3 text-xs text-slate-500">{settingsStatus}</p>}

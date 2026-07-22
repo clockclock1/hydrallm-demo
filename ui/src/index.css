@@ -1067,6 +1067,15 @@ button:active {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.16), 0 0 22px rgba(34, 211, 238, 0.16) !important;
 }
 
+.uiverse-shell textarea.api-key-lines-textarea {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  line-height: 1.55;
+}
+
 .uiverse-shell table {
   color: var(--uv-text);
 }
@@ -1442,6 +1451,20 @@ button:active {
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.45;
+}
+
+.uiverse-shell .log-action-button .log-action-icon {
+  position: relative;
+  z-index: 1;
+  display: block !important;
+  width: 1rem !important;
+  min-width: 1rem !important;
+  height: 1rem !important;
+  opacity: 1 !important;
+  color: currentColor !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.4;
 }
 
 .uiverse-shell tbody tr {

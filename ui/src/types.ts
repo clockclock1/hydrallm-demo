@@ -3,6 +3,8 @@ export interface Provider {
   name: string;
   baseUrl: string;
   apiKey: string;
+  apiKeys: string[];
+  apiKeyMode: 'single' | 'round-robin' | 'random';
   models: string[];
   status: 'online' | 'offline' | 'unknown';
   latency?: number;
@@ -35,7 +37,8 @@ export interface FailoverChain {
   createdAt: number;
   totalRequests: number;
   failoverCount: number;
-  successRate: number;
+  // `null` means the backend has not recorded a completed request yet.
+  successRate: number | null;
 }
 
 export type Page = 'dashboard' | 'providers' | 'model-tests' | 'chains' | 'model-stats' | 'endpoints' | 'live-status' | 'logs';
@@ -110,6 +113,8 @@ export interface ModelTestTarget {
   providerName: string;
   baseUrl: string;
   apiKey: string;
+  apiKeys?: string[];
+  apiKeyMode?: Provider['apiKeyMode'];
   modelName: string;
 }
 

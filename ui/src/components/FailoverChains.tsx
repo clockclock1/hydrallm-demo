@@ -234,7 +234,7 @@ function ChainEditor({
       createdAt: chain?.createdAt || Date.now(),
       totalRequests: chain?.totalRequests || 0,
       failoverCount: chain?.failoverCount || 0,
-      successRate: chain?.successRate || 100,
+      successRate: chain?.successRate ?? null,
     });
   };
 
@@ -762,8 +762,11 @@ export default function FailoverChains() {
                       <p>转移</p>
                     </div>
                     <div className="text-center">
-                      <p className={cn('font-semibold', chain.successRate >= 99 ? 'text-emerald-600' : 'text-amber-600')}>
-                        {chain.successRate}%
+                      <p className={cn(
+                        'font-semibold',
+                        chain.successRate === null ? 'text-slate-400' : chain.successRate >= 99 ? 'text-emerald-600' : 'text-amber-600',
+                      )}>
+                        {chain.successRate === null ? '--' : `${chain.successRate}%`}
                       </p>
                       <p>成功率</p>
                     </div>
