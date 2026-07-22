@@ -19,6 +19,7 @@ interface BackendTarget {
 
 interface BackendModel {
   publicName: string;
+  contextWindowTokens?: number;
   enabled?: boolean;
   strategy?: FailoverChain['strategy'];
   circuitBreaker?: {
@@ -158,6 +159,7 @@ const defaultConfig: BackendConfig = {
     url: '',
     apiKey: '',
     refreshSeconds: 300,
+    contextWindowTokens: 1_000_000,
     include: '',
     exclude: '',
     publicPrefix: '',
@@ -230,6 +232,7 @@ function normalizeChain(chain: FailoverChain): FailoverChain {
   return {
     ...chain,
     strategy: chain.strategy === 'weighted' ? 'priority' : chain.strategy || 'priority',
+    contextWindowTokens: Math.max(1024, Math.floor(Number(chain.contextWindowTokens) || 1_000_000)),
     targetTimeoutSeconds: Math.max(1, Math.floor(Number(chain.targetTimeoutSeconds || firstModel?.timeout) || 30)),
     targetMaxRetries: Math.max(0, Math.floor(Number(chain.targetMaxRetries ?? firstModel?.maxRetries) || 0)),
     circuitFailureThreshold: Math.max(1, Math.floor(Number(chain.circuitFailureThreshold) || 3)),
@@ -436,6 +439,8 @@ function normalizeActiveThread(thread: ActiveThread): ActiveThread {
     targetBaseUrl: String(thread.targetBaseUrl || ''),
     attempt: Math.max(0, Math.floor(Number(thread.attempt) || 0)),
     maxAttempts: Math.max(0, Math.floor(Number(thread.maxAttempts) || 0)),
+    compressionAttempt: Math.max(0, Math.floor(Number(thread.compressionAttempt) || 0)),
+    maxCompressionAttempts: Math.max(0, Math.floor(Number(thread.maxCompressionAttempts) || 0)),
     phase: String(thread.phase || 'unknown'),
     status: String(thread.status || ''),
     startedAt: Number(thread.startedAt || 0),
@@ -528,6 +533,7 @@ function backendToUi(config: BackendConfig, stats?: BackendStats | null): Pick<S
       models,
       strategy: model.strategy === 'weighted' ? 'priority' : model.strategy || 'priority',
       proxyModelName: model.publicName,
+      contextWindowTokens: Math.max(1024, Math.floor(Number(model.contextWindowTokens) || 1_000_000)),
       proxyApiKey: firstProxyKey,
       targetTimeoutSeconds: Math.max(1, Math.floor(Number(firstTarget?.timeout) || 30)),
       targetMaxRetries: Math.max(0, Math.floor(Number(firstTarget?.maxRetries) || 0)),
@@ -602,6 +608,7 @@ function uiToBackend(state: State): BackendConfig {
 
   const models: BackendModel[] = state.chains.map((chain) => ({
     publicName: chain.proxyModelName,
+    contextWindowTokens: Math.max(1024, Math.floor(Number(chain.contextWindowTokens) || 1_000_000)),
     enabled: chain.enabled,
     strategy: chain.strategy,
     circuitBreaker: {

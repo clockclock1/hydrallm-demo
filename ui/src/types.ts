@@ -28,6 +28,7 @@ export interface FailoverChain {
   models: FailoverModel[];
   strategy: 'priority' | 'round-robin' | 'weighted' | 'latency-based';
   proxyModelName: string;
+  contextWindowTokens: number;
   proxyApiKey: string;
   targetTimeoutSeconds: number;
   targetMaxRetries: number;
@@ -71,6 +72,8 @@ export interface ActiveThread {
   targetBaseUrl: string;
   attempt: number;
   maxAttempts: number;
+  compressionAttempt: number;
+  maxCompressionAttempts: number;
   phase: string;
   status: string;
   startedAt: number;

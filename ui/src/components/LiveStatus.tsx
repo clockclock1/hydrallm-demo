@@ -8,6 +8,7 @@ import AnimatedGlyph from './AnimatedGlyph';
 const phaseMeta: Record<string, { label: string; className: string }> = {
   starting: { label: '创建中', className: 'border-slate-200 bg-slate-50 text-slate-600' },
   calling: { label: '调用中', className: 'border-blue-200 bg-blue-50 text-blue-700' },
+  'context-retrying': { label: '上下文压缩重试', className: 'border-violet-200 bg-violet-50 text-violet-700' },
   retrying: { label: '重试中', className: 'border-amber-200 bg-amber-50 text-amber-700' },
   streaming: { label: '流式转发', className: 'border-cyan-200 bg-cyan-50 text-cyan-700' },
   skipped: { label: '已跳过', className: 'border-slate-200 bg-slate-50 text-slate-600' },
@@ -63,6 +64,9 @@ function PhasePill({ phase }: { phase: string }) {
 
 function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number; index: number }) {
   const targetLabel = thread.targetModel || thread.targetName || thread.targetBaseUrl || '等待目标';
+  const attemptLabel = thread.compressionAttempt > 0
+    ? `${thread.attempt || 0} 次（上下文压缩 ${thread.compressionAttempt} / ${thread.maxCompressionAttempts || 32}）`
+    : `${thread.attempt || 0}${thread.maxAttempts ? ` / ${thread.maxAttempts}` : ''}`;
 
   return (
     <div className="motion-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md" style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}>
@@ -100,7 +104,7 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
         <div className="rounded-lg bg-slate-50 p-3">
           <p className="text-xs text-slate-400">尝试次数</p>
           <p className="mt-1 font-mono text-sm text-slate-700">
-            {thread.attempt || 0}{thread.maxAttempts ? ` / ${thread.maxAttempts}` : ''}
+            {attemptLabel}
           </p>
         </div>
       </div>

@@ -255,7 +255,7 @@ export default function Dashboard() {
                 <th className="px-5 py-2.5 text-left font-medium">时间</th>
                 <th className="px-5 py-2.5 text-left font-medium">转移链</th>
                 <th className="px-5 py-2.5 text-left font-medium">调用路径</th>
-                <th className="px-5 py-2.5 text-left font-medium">状态</th>
+                <th className="whitespace-nowrap px-5 py-2.5 text-left font-medium">状态</th>
                 <th className="px-5 py-2.5 text-left font-medium">延迟</th>
               </tr>
             </thead>
@@ -277,11 +277,11 @@ export default function Dashboard() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="whitespace-nowrap px-5 py-3">
                       {log.status === 'success' ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> 成功</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-emerald-600"><CheckCircle2 size={12} /> 成功</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-red-500"><XCircle size={12} /> 失败</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-red-500"><XCircle size={12} /> 失败</span>
                       )}
                     </td>
                     <td className="px-5 py-3 font-mono text-xs text-slate-500">{log.latency}ms</td>

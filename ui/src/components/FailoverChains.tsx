@@ -74,6 +74,7 @@ function ChainEditor({
   const [description, setDescription] = useState(chain?.description || '');
   const [strategy, setStrategy] = useState<FailoverChain['strategy']>(chain?.strategy === 'weighted' ? 'priority' : chain?.strategy || 'priority');
   const [proxyModelName, setProxyModelName] = useState(chain?.proxyModelName || '');
+  const [contextWindowTokens, setContextWindowTokens] = useState(chain?.contextWindowTokens || 1_000_000);
   const [proxyApiKey, setProxyApiKey] = useState(chain?.proxyApiKey || 'fpk-' + uuidv4().slice(0, 24));
   const [targetTimeoutSeconds, setTargetTimeoutSeconds] = useState(chain?.targetTimeoutSeconds || chain?.models?.[0]?.timeout || 30);
   const [targetMaxRetries, setTargetMaxRetries] = useState(chain?.targetMaxRetries ?? chain?.models?.[0]?.maxRetries ?? 0);
@@ -210,6 +211,7 @@ function ChainEditor({
   const handleSave = () => {
     const timeout = Math.max(1, Math.min(3600, Math.floor(Number(targetTimeoutSeconds) || 30)));
     const maxRetries = Math.max(0, Math.min(20, Math.floor(Number(targetMaxRetries) || 0)));
+    const contextWindow = Math.max(1024, Math.min(4_294_967_295, Math.floor(Number(contextWindowTokens) || 1_000_000)));
     const failureThreshold = Math.max(1, Math.min(100, Math.floor(Number(circuitFailureThreshold) || 3)));
     const cooldownMinutes = Math.max(1, Math.min(1440, Math.floor(Number(circuitCooldownMinutes) || 10)));
     const nextModels = normalizeQueue(models).map(model => ({
@@ -224,6 +226,7 @@ function ChainEditor({
       description,
       strategy,
       proxyModelName,
+      contextWindowTokens: contextWindow,
       proxyApiKey,
       targetTimeoutSeconds: timeout,
       targetMaxRetries: maxRetries,
@@ -330,6 +333,19 @@ function ChainEditor({
                 className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm font-mono transition-all"
                 placeholder="my-gpt4-ha"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">contextWindowTokens（代理模型上下文窗口）</label>
+              <input
+                type="number"
+                min={1024}
+                max={4_294_967_295}
+                step={1024}
+                value={contextWindowTokens}
+                onChange={event => setContextWindowTokens(Math.max(1024, Math.min(4_294_967_295, Number(event.target.value) || 1_000_000)))}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm font-mono transition-all"
+              />
+              <p className="mt-1 text-xs text-slate-400">客户端可见窗口；默认 1,000,000。</p>
             </div>
           </div>
 
@@ -810,6 +826,12 @@ export default function FailoverChains() {
                       >
                         <span className="fallback-icon" aria-hidden="true">C</span>
                       </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">上下文：</span>
+                      <code className="chain-config-pill bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 font-mono text-xs">
+                        {chain.contextWindowTokens.toLocaleString()} tokens
+                      </code>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">队列：</span>
