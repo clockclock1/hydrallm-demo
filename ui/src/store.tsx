@@ -63,12 +63,22 @@ interface BackendStats {
   failures?: number;
   failovers?: number;
   memory?: {
+    platform?: string;
     pid?: number;
+    primaryMetric?: string;
+    primaryMetricLabel?: string;
     workingSetBytes?: number;
     peakWorkingSetBytes?: number;
-    privateBytes?: number;
+    privateCommitBytes?: number;
+    physicalFootprintBytes?: number;
+    rssBytes?: number;
+    pssBytes?: number;
+    privateResidentBytes?: number;
+    peakRssBytes?: number;
+    swapBytes?: number;
     virtualBytes?: number;
     dataBytes?: number;
+    collectionError?: string | null;
   };
   chains?: Record<string, {
     requests: number;

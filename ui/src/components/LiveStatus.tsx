@@ -35,12 +35,22 @@ function formatBytes(value?: number) {
 }
 
 const memoryLabels: Record<string, string> = {
+  platform: '操作系统',
   pid: '进程 ID',
-  workingSetBytes: '工作集',
+  primaryMetric: '首页指标字段',
+  primaryMetricLabel: '首页指标含义',
+  workingSetBytes: '工作集（当前驻留物理内存）',
   peakWorkingSetBytes: '峰值工作集',
-  privateBytes: '私有内存',
-  virtualBytes: '虚拟内存',
+  privateCommitBytes: '私有提交内存',
+  physicalFootprintBytes: '物理足迹（macOS 内存压力计入值）',
+  rssBytes: '驻留内存（RSS）',
+  pssBytes: '比例驻留内存（PSS，已分摊共享页）',
+  privateResidentBytes: '私有驻留内存',
+  peakRssBytes: '峰值驻留内存',
+  swapBytes: '已换出内存',
+  virtualBytes: '虚拟地址空间',
   dataBytes: '数据段',
+  collectionError: '采样说明',
 };
 
 function formatMemoryValue(key: string, value: unknown) {
@@ -151,6 +161,12 @@ export default function LiveStatus() {
   const activeChains = new Set(threads.map(thread => thread.chainName)).size;
   const memory = state.backendStats?.memory;
   const memoryEntries = Object.entries(memory || {});
+  const primaryMetric = memory?.primaryMetric;
+  const primaryMetricValue = primaryMetric
+    ? memory?.[primaryMetric as keyof typeof memory]
+    : memory?.workingSetBytes;
+  const primaryMemory = typeof primaryMetricValue === 'number' ? primaryMetricValue : undefined;
+  const primaryMemoryLabel = memory?.primaryMetricLabel || '当前驻留内存';
 
   return (
     <div className="space-y-6">
@@ -195,7 +211,8 @@ export default function LiveStatus() {
             <span className="text-sm text-slate-500">内存占用</span>
             <AnimatedGlyph variant="memory" className="text-emerald-500" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-slate-800">{formatBytes(memory?.workingSetBytes)}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-800">{formatBytes(primaryMemory)}</p>
+          <p className="mt-1 text-xs text-slate-400">{primaryMemoryLabel}</p>
         </button>
         <div
           className={cn(

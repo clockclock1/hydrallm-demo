@@ -45,7 +45,7 @@ export default function Login({
           <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
             <LockKeyhole size={20} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">登录 Failover-Proxy</h1>
+          <h1 className="text-2xl font-bold text-slate-900">登录 Failover Proxy</h1>
           <p className="mt-1 text-sm text-slate-500">请输入 Admin Token。服务重启后需要重新登录。</p>
         </div>
 
