@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 管理 UI 页面卡片 —— 展示上游 HydraLLM React UI 的 8 个管理页面。
+ * 管理 UI 页面卡片 —— 展示上游 Failover-Proxy React UI 的 8 个管理页面。
  * 列表与 ui/src/components/Sidebar.tsx 的 navItems 一一对应，
  * 点击直接跳转到 /ui/<pageId>。
  */

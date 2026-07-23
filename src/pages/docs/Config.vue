@@ -18,7 +18,7 @@ const configFields = [
   <div>
     <h1>配置说明<a class="header-anchor" href="#config" aria-label="Permalink"></a></h1>
     <p>
-      HydraLLM 使用 <code>data/config.json</code> 存储配置。所有配置都可以通过管理界面修改，无需手动编辑文件。
+      Failover-Proxy 使用 <code>data/config.json</code> 存储配置。所有配置都可以通过管理界面修改，无需手动编辑文件。
     </p>
 
     <h2>顶层字段<a class="header-anchor" href="#top-level" aria-label="Permalink"></a></h2>
@@ -82,7 +82,7 @@ const configFields = [
 
     <h2>远程模型来源（modelSource）<a class="header-anchor" href="#model-source" aria-label="Permalink"></a></h2>
     <p>
-      <code>modelSource</code> 可配置一个第三方 URL，HydraLLM 会自动从该 URL 拉取模型列表，
+      <code>modelSource</code> 可配置一个第三方 URL，Failover-Proxy 会自动从该 URL 拉取模型列表，
       支持通过 <code>include</code> / <code>exclude</code> 正则过滤，并可在模型名前后添加 <code>publicPrefix</code> / <code>publicSuffix</code>。
     </p>
     <CodeBlock lang="json">{

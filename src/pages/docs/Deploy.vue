@@ -13,7 +13,7 @@ import DocContainer from '../../components/DocContainer.vue'
     <h2>1. 创建项目<a class="header-anchor" href="#create" aria-label="Permalink"></a></h2>
     <ol>
       <li>登录 <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Dashboard</a> → <strong>Workers & Pages</strong> → <strong>Create</strong> → <strong>Pages</strong> → <strong>Connect to Git</strong></li>
-      <li>选择 <code>clockclock1/hydrallm-demo</code> 仓库（或你 fork 的副本）</li>
+      <li>选择 <code>clockclock1/failover-proxy-demo</code> 仓库（或你 fork 的副本）</li>
       <li>按下表填写构建配置</li>
       <li>点击 <strong>Save and Deploy</strong></li>
     </ol>
@@ -24,7 +24,7 @@ import DocContainer from '../../components/DocContainer.vue'
         <tr><th>字段</th><th>值</th></tr>
       </thead>
       <tbody>
-        <tr><td>Project name</td><td><code>hydrallm-demo</code></td></tr>
+        <tr><td>Project name</td><td><code>failover-proxy-demo</code></td></tr>
         <tr><td>Production branch</td><td><code>main</code></td></tr>
         <tr><td>Framework preset</td><td>None</td></tr>
         <tr><td>Build command</td><td><code>npm install && npm run build</code></td></tr>
@@ -39,7 +39,7 @@ import DocContainer from '../../components/DocContainer.vue'
 
     <h2>3. 自定义域名<a class="header-anchor" href="#custom-domain" aria-label="Permalink"></a></h2>
     <p>
-      部署成功后会得到形如 <code>hydrallm-demo.pages.dev</code> 的域名。
+      部署成功后会得到形如 <code>failover-proxy-demo.pages.dev</code> 的域名。
       在项目的 <strong>Custom domains</strong> 选项卡中添加自有域名，按提示添加 CNAME 即可绑定。
     </p>
 

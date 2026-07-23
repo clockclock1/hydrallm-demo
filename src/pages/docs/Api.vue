@@ -25,7 +25,7 @@ const adminEndpoints = [
 <template>
   <div>
     <h1>API 参考<a class="header-anchor" href="#api" aria-label="Permalink"></a></h1>
-    <p>HydraLLM 提供两类 API：OpenAI 兼容的代理端点和管理端点。</p>
+    <p>Failover-Proxy 提供两类 API：OpenAI 兼容的代理端点和管理端点。</p>
 
     <h2>OpenAI 兼容端点<a class="header-anchor" href="#proxy-endpoints" aria-label="Permalink"></a></h2>
     <table>
@@ -42,7 +42,7 @@ const adminEndpoints = [
     </table>
 
     <p>客户端调用示例：</p>
-    <CodeBlock lang="bash"># 把 base_url 指向 HydraLLM，API Key 用 proxyKey
+    <CodeBlock lang="bash"># 把 base_url 指向 Failover-Proxy，API Key 用 proxyKey
 curl http://localhost:8787/v1/chat/completions \
   -H "Authorization: Bearer sk-local-test" \
   -H "Content-Type: application/json" \

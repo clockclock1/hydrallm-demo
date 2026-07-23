@@ -32,7 +32,7 @@ type Status = keyof typeof statusConfig
         </div>
         <div class="flex items-center gap-1.5 text-xs text-zinc-500">
           <span class="i-lucide-arrow-right h-3.5 w-3.5" />
-          HydraLLM
+          Failover-Proxy
         </div>
         <div class="flex items-center gap-1.5 text-xs text-zinc-500">
           <span class="i-lucide-shuffle h-3.5 w-3.5" />

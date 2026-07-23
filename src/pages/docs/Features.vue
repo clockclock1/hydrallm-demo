@@ -15,7 +15,7 @@ const features = [
   <div>
     <h1>核心特性<a class="header-anchor" href="#features" aria-label="Permalink"></a></h1>
     <p>
-      HydraLLM 把"多模型路由 + 故障转移"封装为标准的 OpenAI 兼容接口，让你无需改动业务代码即可获得以下能力。
+      Failover-Proxy 把"多模型路由 + 故障转移"封装为标准的 OpenAI 兼容接口，让你无需改动业务代码即可获得以下能力。
     </p>
     <ul>
       <li v-for="f in features" :key="f.t">

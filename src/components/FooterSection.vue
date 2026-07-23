@@ -47,7 +47,7 @@ import { site } from '../data/sections'
         target="_blank"
         rel="noopener"
         class="underline-offset-2 transition-colors hover:underline"
-      >HydraLLM</a>
+      >Failover-Proxy</a>
       构建，托管于
       <a
         href="https://pages.cloudflare.com/"

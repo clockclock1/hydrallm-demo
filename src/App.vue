@@ -73,8 +73,8 @@ onUnmounted(() => {
             : 'text-zinc-100 hover:text-brand-400'"
         >
           <span class="i-lucide-arrow-left h-4 w-4" v-if="route.name === 'docs'" />
-          <span v-else class="text-gradient text-lg font-extrabold tracking-tight">HydraLLM</span>
-          <span v-if="route.name === 'docs'" class="text-base font-bold tracking-tight">HydraLLM</span>
+          <span v-else class="text-gradient text-lg font-extrabold tracking-tight">Failover-Proxy</span>
+          <span v-if="route.name === 'docs'" class="text-base font-bold tracking-tight">Failover-Proxy</span>
         </a>
         <div class="flex items-center gap-1 text-sm">
           <button
@@ -108,7 +108,7 @@ onUnmounted(() => {
           <StackBadges />
         </template>
         <template v-else>
-          <h1 class="sr-only">HydraLLM 文档</h1>
+          <h1 class="sr-only">Failover-Proxy 文档</h1>
           <DocsPage :doc-id="route.id" />
         </template>
       </main>
