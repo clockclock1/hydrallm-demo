@@ -1,16 +1,16 @@
 {
-  "name": "hydrallm-demo",
+  "name": "failover-proxy-demo",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "HydraLLM 项目展示示例站 - Cloudflare Pages 静态站点",
+  "description": "Failover-Proxy 项目展示示例站 - Cloudflare Pages 静态站点",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build && cd ui && npm install && npm run build",
     "build:ui": "cd ui && npm install && npm run build",
     "build:all": "npm run build",
     "preview": "vite preview",
-    "deploy": "npm run build:all && wrangler pages deploy dist --project-name hydrallm-demo"
+    "deploy": "npm run build:all && wrangler pages deploy dist --project-name failover-proxy-demo"
   },
   "engines": {
     "node": ">=18.0.0"

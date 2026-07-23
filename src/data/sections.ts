@@ -2,17 +2,17 @@
 // 注意：本站是纯展示示例，所有"数据"均为静态展示用，不与真实后端交互。
 
 export const site = {
-  name: 'HydraLLM',
+  name: 'Failover-Proxy',
   tagline: '接入多个大模型不该是一件头疼的事',
   subtitle:
     '一个 OpenAI 兼容的 LLM 故障转移代理，自带可视化管理界面。模型故障或触发限流时，自动将流量路由到下一个可用目标。',
   upstream: {
-    repo: 'https://github.com/clockclock1/HydraLLM',
-    issues: 'https://github.com/clockclock1/HydraLLM/issues',
-    demoRepo: 'https://github.com/clockclock1/hydrallm-demo',
+    repo: 'https://github.com/clockclock1/Failover-Proxy',
+    issues: 'https://github.com/clockclock1/Failover-Proxy/issues',
+    demoRepo: 'https://github.com/clockclock1/failover-proxy-demo',
     license: 'Apache-2.0',
   },
-  // 演示 UI 入口 —— 上游 HydraLLM UI 使用浏览器路由，默认页是 /dashboard
+  // 演示 UI 入口 —— 上游 Failover-Proxy UI 使用浏览器路由，默认页是 /dashboard
   demoUrl: '/ui/dashboard',
 } as const
 
@@ -115,7 +115,7 @@ export const stats = [
 ]
 
 /**
- * 管理 UI 页面清单 —— 与上游 HydraLLM React UI 的 sidebar 导航对应。
+ * 管理 UI 页面清单 —— 与上游 Failover-Proxy React UI 的 sidebar 导航对应。
  * 见 ui/src/components/Sidebar.tsx 的 navItems。
  */
 export interface DashboardPage {
@@ -195,7 +195,7 @@ export const docGroups: DocGroup[] = [
 /** 文档侧边栏章节顺序（决定侧边栏渲染顺序与 pager prev/next 相邻关系） */
 export const docSections: DocSection[] = [
   // 上手使用
-  { id: 'intro',         label: '简介',              group: 'guide',  icon: 'i-lucide-info',         desc: '什么是 HydraLLM' },
+  { id: 'intro',         label: '简介',              group: 'guide',  icon: 'i-lucide-info',         desc: '什么是 Failover-Proxy' },
   { id: 'features',      label: '核心特性',           group: 'guide',  icon: 'i-lucide-sparkles' },
   { id: 'quickstart',    label: '快速开始',           group: 'guide',  icon: 'i-lucide-rocket' },
   { id: 'config',        label: '配置说明',           group: 'guide',  icon: 'i-lucide-settings' },

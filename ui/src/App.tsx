@@ -10,7 +10,7 @@ type ThemeMode = 'dark' | 'light';
 
 function initialTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'dark';
-  const saved = window.localStorage.getItem('hydrallm-theme');
+  const saved = window.localStorage.getItem('failover-proxy-theme');
   if (saved === 'light' || saved === 'dark') return saved;
   return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
@@ -48,7 +48,7 @@ function AppLayout() {
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
 
   useEffect(() => {
-    window.localStorage.setItem('hydrallm-theme', theme);
+    window.localStorage.setItem('failover-proxy-theme', theme);
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
   }, [theme]);

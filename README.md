@@ -1,27 +1,27 @@
-# HydraLLM · Cloudflare Pages 示例站
+# Failover-Proxy · Cloudflare Pages 示例站
 
 > 接入多个大模型不该是一件头疼的事。
 
-本仓库是 HydraLLM 项目的 Cloudflare Pages 示例站，包含两个部分：
+本仓库是 Failover-Proxy 项目的 Cloudflare Pages 示例站，包含两个部分：
 
 | 页面 | 路径 | 说明 |
 |---|---|---|
 | **着陆页** | `/` | Vue 3 项目介绍页（含 8 个管理页面导航卡片） |
-| **交互演示** | `/ui/dashboard` | HydraLLM 管理界面（React UI + fetch 拦截器 Mock API），共 8 个管理页面 |
+| **交互演示** | `/ui/dashboard` | Failover-Proxy 管理界面（React UI + fetch 拦截器 Mock API），共 8 个管理页面 |
 
 > 🧪 交互演示页通过 fetch 拦截器（内嵌在 `index.html`）拦截所有 `/api/*` 请求，返回模拟数据，无需后端即可体验完整功能。
 >
-> 上游 HydraLLM UI 使用**浏览器路由**（`history.pushState`），所有页面路由均带 `/ui/` 前缀（如 `/ui/dashboard`、`/ui/providers`），由 Cloudflare Pages 的 `_redirects` 通配规则统一 rewrite 到 `/ui/index.html`，由 React 客户端路由接管。
+> 上游 Failover-Proxy UI 使用**浏览器路由**（`history.pushState`），所有页面路由均带 `/ui/` 前缀（如 `/ui/dashboard`、`/ui/providers`），由 Cloudflare Pages 的 `_redirects` 通配规则统一 rewrite 到 `/ui/index.html`，由 React 客户端路由接管。
 
-**上游项目**：[clockclock1/HydraLLM](https://github.com/clockclock1/HydraLLM)
+**上游项目**：[clockclock1/Failover-Proxy](https://github.com/clockclock1/Failover-Proxy)
 
 ---
 
 ## 🔄 自动同步机制
 
-本仓库的 `ui/` 目录会自动与上游 HydraLLM 项目保持同步：
+本仓库的 `ui/` 目录会自动与上游 Failover-Proxy 项目保持同步：
 
-- GitHub Actions **每小时整点**（UTC）检查上游 HydraLLM 是否有新提交
+- GitHub Actions **每小时整点**（UTC）检查上游 Failover-Proxy 是否有新提交
 - 如果 `ui/src/` 有更新，自动 commit 到 `main` 分支
 - `main` 分支更新后，Cloudflare Pages 的 Git 集成自动触发构建部署
 
@@ -29,7 +29,7 @@
 
 ### 路由适配补丁（同步后自动应用）
 
-上游 HydraLLM 的 `pagePaths` 默认使用根路径 `/dashboard`、`/providers` 等。本仓库部署在 Cloudflare Pages 的 `/ui/` 子目录下，根路径会回落到 Vue 着陆页。同步 workflow 在拉取上游 `ui/src/` 后会自动运行一个 `sed` 补丁，把 `pagePaths` 全部改写为 `/ui/dashboard`、`/ui/providers` 等（带 `/ui/` 前缀），再提交。这样：
+上游 Failover-Proxy 的 `pagePaths` 默认使用根路径 `/dashboard`、`/providers` 等。本仓库部署在 Cloudflare Pages 的 `/ui/` 子目录下，根路径会回落到 Vue 着陆页。同步 workflow 在拉取上游 `ui/src/` 后会自动运行一个 `sed` 补丁，把 `pagePaths` 全部改写为 `/ui/dashboard`、`/ui/providers` 等（带 `/ui/` 前缀），再提交。这样：
 
 - React UI 的 URL 永远是 `/ui/xxx` 形式，符合子目录部署语义
 - `public/_redirects` 只需一条 `/ui/* → /ui/index.html 200` 通配规则
@@ -45,7 +45,7 @@
 
    | 字段 | 值 |
    |---|---|
-   | **Project name** | `hydrallm-demo` |
+   | **Project name** | `failover-proxy-demo` |
    | **Build command** | `npm install && npm run build` |
    | **Build output directory** | `dist` |
 
@@ -76,9 +76,9 @@ npm run build
 ## 📁 项目结构
 
 ```
-hydrallm-demo/
+failover-proxy-demo/
 ├── .github/workflows/
-│   └── sync-upstream.yml         # 每小时整点（UTC）同步上游 HydraLLM ui/src
+│   └── sync-upstream.yml         # 每小时整点（UTC）同步上游 Failover-Proxy ui/src
 ├── src/                          # Vue 3 着陆页源码
 │   ├── components/
 │   │   ├── DocsLayout.vue        # 文档页三栏布局（侧边栏 + 内容 + 导航）
@@ -86,7 +86,7 @@ hydrallm-demo/
 │   │   └── ...
 │   ├── pages/docs/               # 文档站 9 个章节组件
 │   └── data/sections.ts          # 站点文案 + 文档导航元数据
-├── ui/                           # HydraLLM React UI（自动同步上游）
+├── ui/                           # Failover-Proxy React UI（自动同步上游）
 │   ├── src/
 │   │   ├── App.tsx               # 应用入口 + 浏览器路由（history.pushState）
 │   │   ├── components/            # 12 个 UI 组件
