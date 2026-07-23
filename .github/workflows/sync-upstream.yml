@@ -1,6 +1,6 @@
-name: Sync upstream HydraLLM ui/
+name: Sync upstream Failover-Proxy ui/
 
-# 监听上游 HydraLLM 的 ui/ 目录变化，自动同步到本仓库 ui/ 目录。
+# 监听上游 Failover-Proxy 的 ui/ 目录变化，自动同步到本仓库 ui/ 目录。
 # 同步成功后 main 分支更新，Cloudflare Pages Git 集成会自动重新部署。
 #
 # 触发方式：
@@ -50,13 +50,13 @@ jobs:
           # 用 GitHub API 拿到上游 HEAD SHA，无需 clone
           UPSTREAM_SHA=$(curl -fsSL \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/clockclock1/HydraLLM/commits/main \
+            https://api.github.com/repos/clockclock1/Failover-Proxy/commits/main \
             | jq -r '.sha')
           echo "Upstream HEAD: $UPSTREAM_SHA"
 
           # 从我们仓库已有的同步提交信息里解析上次同步到的 SHA
           LAST_SYNC=$(git log -1 --pretty=%B --grep='^chore(sync):' ui/src/ 2>/dev/null \
-            | grep -oE 'HydraLLM@[a-f0-9]+' | head -1 | cut -d@ -f2 || true)
+            | grep -oE 'Failover-Proxy@[a-f0-9]+' | head -1 | cut -d@ -f2 || true)
           echo "Last synced: ${LAST_SYNC:-none}"
 
           if [ -n "$LAST_SYNC" ] && [ "$UPSTREAM_SHA" = "$LAST_SYNC" ]; then
@@ -68,11 +68,11 @@ jobs:
             echo "→ Upstream updated, will sync"
           fi
 
-      - name: Clone upstream HydraLLM
+      - name: Clone upstream Failover-Proxy
         if: steps.probe.outputs.skip == 'false'
         run: |
           git clone --depth 1 \
-            https://github.com/clockclock1/HydraLLM.git /tmp/hydra
+            https://github.com/clockclock1/Failover-Proxy.git /tmp/hydra
 
       - name: Sync ui/src/ from upstream
         if: steps.probe.outputs.skip == 'false'
@@ -250,9 +250,9 @@ jobs:
       - name: Commit changes
         if: steps.probe.outputs.skip == 'false' && steps.diff.outputs.changed == 'true'
         run: |
-          git commit -m "chore(sync): ui/ synced from upstream HydraLLM@${{ steps.probe.outputs.upstream_sha }}
+          git commit -m "chore(sync): ui/ synced from upstream Failover-Proxy@${{ steps.probe.outputs.upstream_sha }}
 
-          自动同步自 https://github.com/clockclock1/HydraLLM
+          自动同步自 https://github.com/clockclock1/Failover-Proxy
           上游 commit: ${{ steps.probe.outputs.upstream_sha }}"
 
       - name: Push to main
@@ -265,7 +265,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.probe.outputs.skip }}" = "true" ]; then
-            echo "### ✅ 无需同步 — 上游 HydraLLM HEAD 未变化" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ 无需同步 — 上游 Failover-Proxy HEAD 未变化" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
             echo "### ✅ 同步完成 — 已推送 main 分支，CF Pages 自动部署中" >> $GITHUB_STEP_SUMMARY
             echo "上游 commit: \`${{ steps.probe.outputs.upstream_sha }}\`" >> $GITHUB_STEP_SUMMARY
