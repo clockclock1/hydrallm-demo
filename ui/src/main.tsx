@@ -4,7 +4,10 @@ import "./index.css";
 
 const root = createRoot(document.getElementById("root")!);
 
-import("./App").then(({ default: App }) => {
+const isSharedLiveStatus = /^\/share\/live-status\/[^/]+\/?$/.test(window.location.pathname);
+const appModule = isSharedLiveStatus ? import('./SharedLiveStatusApp') : import('./App');
+
+appModule.then(({ default: App }) => {
   root.render(
     <StrictMode>
       <App />

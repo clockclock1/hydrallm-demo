@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Clock3, Server } from 'lucide-react';
 import { useStore } from '../store';
 import type { ActiveThread } from '../types';
@@ -153,13 +153,22 @@ function ThreadCard({ thread, now, index }: { thread: ActiveThread; now: number;
   );
 }
 
-export default function LiveStatus() {
+export type SharedLiveStatusData = {
+  activeThreads: ActiveThread[];
+  memory?: Record<string, unknown>;
+};
+
+export default function LiveStatus({ sharedData }: { sharedData?: SharedLiveStatusData }) {
   const { state } = useStore();
+  const isShared = Boolean(sharedData);
   const [memoryExpanded, setMemoryExpanded] = useState(false);
+  const [shareStatus, setShareStatus] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareEnabled, setShareEnabled] = useState(false);
   const now = Date.now();
-  const threads = state.activeThreads;
+  const threads = sharedData?.activeThreads || state.activeThreads;
   const activeChains = new Set(threads.map(thread => thread.chainName)).size;
-  const memory = state.backendStats?.memory;
+  const memory = sharedData?.memory || state.backendStats?.memory;
   const memoryEntries = Object.entries(memory || {});
   const primaryMetric = memory?.primaryMetric;
   const primaryMetricValue = primaryMetric
@@ -167,6 +176,72 @@ export default function LiveStatus() {
     : memory?.workingSetBytes;
   const primaryMemory = typeof primaryMetricValue === 'number' ? primaryMetricValue : undefined;
   const primaryMemoryLabel = memory?.primaryMetricLabel || '当前驻留内存';
+
+  const loadShares = async () => {
+    if (isShared || !state.adminSession) return;
+    const response = await fetch('/api/shares/live-status', {
+      headers: { 'x-admin-session': state.adminSession },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('读取分享链接失败');
+    const payload = await response.json();
+    setShareEnabled(Boolean(payload.enabled));
+    setShareUrl(payload.path ? `${window.location.origin}${String(payload.path)}` : '');
+  };
+
+  useEffect(() => {
+    if (isShared) return;
+    void loadShares().catch(() => {
+      setShareEnabled(false);
+      setShareUrl('');
+    });
+  }, [isShared, state.adminSession]);
+
+  const shareLiveStatus = async () => {
+    if (!state.adminSession) return;
+    setShareStatus('正在创建分享链接…');
+    try {
+      const response = await fetch('/api/shares/live-status', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-admin-session': state.adminSession,
+        },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('创建分享链接失败');
+      const payload = await response.json();
+      const url = `${window.location.origin}${String(payload.path || '')}`;
+      if (!url || !payload.path) throw new Error('分享链接无效');
+      setShareUrl(url);
+      await loadShares();
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareStatus('已复制永久只读实时状态链接');
+      } catch {
+        setShareStatus('链接已生成，请手动复制');
+      }
+    } catch (error) {
+      setShareStatus(error instanceof Error ? error.message : '创建分享链接失败');
+    }
+  };
+
+  const revokeShare = async () => {
+    if (!state.adminSession) return;
+    setShareStatus('正在撤销分享链接…');
+    try {
+      const response = await fetch('/api/shares/live-status/revoke', {
+        method: 'POST',
+        headers: { 'x-admin-session': state.adminSession },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('撤销分享链接失败');
+      await loadShares();
+      setShareStatus('分享链接已撤销');
+    } catch (error) {
+      setShareStatus(error instanceof Error ? error.message : '撤销分享链接失败');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -179,9 +254,56 @@ export default function LiveStatus() {
           <h2 className="mt-3 text-2xl font-bold text-slate-800">实时状况</h2>
           <p className="mt-1 text-slate-500">查看代理 API 当前创建的线程、正在尝试的目标模型和进程内存占用。</p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 self-start rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 xl:self-auto">
-          <AnimatedGlyph variant="refresh" />
-          自动刷新
+        <div className="flex w-full max-w-xl flex-col items-end gap-2 self-start xl:w-auto xl:self-auto">
+          {isShared ? (
+            <div className="inline-flex w-fit items-center gap-2 self-start rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 xl:self-auto">
+              <AnimatedGlyph variant="refresh" />
+              自动刷新
+            </div>
+          ) : <>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void shareLiveStatus()}
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              <AnimatedGlyph variant="chains" />
+              {shareEnabled ? '轮换分享凭证' : '创建分享凭证'}
+            </button>
+            {shareEnabled && (
+              <button
+                type="button"
+                onClick={() => void revokeShare()}
+                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+              >
+                <AnimatedGlyph variant="release" />
+                撤销
+              </button>
+            )}
+            <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <AnimatedGlyph variant="refresh" />
+              自动刷新
+            </div>
+          </div>
+          {shareStatus && <p className="max-w-sm text-right text-xs text-slate-500">{shareStatus}</p>}
+          {shareUrl && (
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="max-w-sm truncate text-right font-mono text-xs text-blue-600 underline"
+              title={shareUrl}
+            >
+              {shareUrl}
+            </a>
+          )}
+          {shareEnabled && (
+            <div className="w-full rounded-lg border border-slate-200 bg-white p-2 text-left text-xs text-slate-600">
+              <p className="font-medium text-slate-700">永久分享凭证已启用</p>
+              <p className="mt-1 text-slate-400">凭证已持久化，可跨服务重启使用；轮换或撤销会立刻使旧链接失效。</p>
+            </div>
+          )}
+          </>}
         </div>
       </div>
 
